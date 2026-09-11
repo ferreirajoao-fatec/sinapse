@@ -11,6 +11,16 @@ const nextConfig = {
   reactStrictMode: true,
   // O pacote compartilhado e distribuido como TypeScript, entao o Next precisa compila-lo.
   transpilePackages: ['@sinapse/shared'],
+  // Repassa as chamadas de API para o backend real sem sair do dominio do
+  // navegador: assim os cookies httpOnly de sessao continuam "mesmo site"
+  // mesmo com web e api hospedados em dominios diferentes (Vercel + Railway).
+  // Em desenvolvimento local API_INTERNAL_URL fica vazio e o rewrite vira no-op.
+  async rewrites() {
+    const backend = process.env.API_INTERNAL_URL;
+    if (!backend) return [];
+
+    return [{ source: '/api/v1/:path*', destination: `${backend}/api/v1/:path*` }];
+  },
 };
 
 export default nextConfig;
