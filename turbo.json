@@ -12,7 +12,8 @@
     "API_PORT",
     "WEB_ORIGIN",
     "NEXT_PUBLIC_API_URL",
-    "NEXT_PUBLIC_APP_NAME"
+    "NEXT_PUBLIC_APP_NAME",
+    "API_INTERNAL_URL"
   ],
   "tasks": {
     "build": {

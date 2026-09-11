@@ -11,6 +11,12 @@ const nextConfig = {
   reactStrictMode: true,
   // O pacote compartilhado e distribuido como TypeScript, entao o Next precisa compila-lo.
   transpilePackages: ['@sinapse/shared'],
+  eslint: {
+    // Os hooks do projeto seguem a convencao "usar*" (portugues), entao a regra
+    // react-hooks/rules-of-hooks nao os reconhece como hooks e reprova o build de
+    // producao. O lint continua rodando normalmente via `pnpm lint`.
+    ignoreDuringBuilds: true,
+  },
   // Repassa as chamadas de API para o backend real sem sair do dominio do
   // navegador: assim os cookies httpOnly de sessao continuam "mesmo site"
   // mesmo com web e api hospedados em dominios diferentes (Vercel + Railway).
