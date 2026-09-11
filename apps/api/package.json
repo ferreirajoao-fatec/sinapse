@@ -1,0 +1,60 @@
+{
+  "name": "@sinapse/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API do Sinapse (NestJS + Prisma + PostgreSQL)",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.0.2",
+    "@nestjs/throttler": "^6.4.0",
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "^6.2.1",
+    "@sinapse/shared": "workspace:*",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0",
+    "prisma": "^6.2.1",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "unplugin-swc": "^1.5.1",
+    "vitest": "^2.1.8"
+  }
+}

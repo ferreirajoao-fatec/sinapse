@@ -1,0 +1,549 @@
+@import 'tailwindcss';
+
+/* Modo escuro controlado por classe, aplicada pelo next-themes no <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =============================================================================
+   Design system do Sinapse
+   Fundo neutro, cor de destaque apenas em acoes, status e categorias.
+   ========================================================================== */
+
+@theme {
+  /* --- Tipografia ---------------------------------------------------------
+     Sans: interface e corpo de texto.
+     Serif: apenas a marca e titulos de pagina, para dar personalidade.
+     Mono: blocos de codigo e dados tecnicos.                              */
+  --font-sans: var(--fonte-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--fonte-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--fonte-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* --- Escala tipografica ------------------------------------------------ */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  /* --- Neutros ------------------------------------------------------------
+     Levemente frios, para nao competir com a cor de destaque.            */
+  --color-neutro-50: #fbfbfa;
+  --color-neutro-100: #f4f4f2;
+  --color-neutro-200: #e7e6e3;
+  --color-neutro-300: #d3d2ce;
+  --color-neutro-400: #a3a29d;
+  --color-neutro-500: #78776f;
+  --color-neutro-600: #57564f;
+  --color-neutro-700: #3c3b36;
+  --color-neutro-800: #26262a;
+  --color-neutro-900: #1a1a1d;
+  --color-neutro-950: #121214;
+
+  /* --- Destaque principal: indigo eletrico ------------------------------- */
+  --color-marca-50: #eeecfd;
+  --color-marca-100: #dcd8fb;
+  --color-marca-200: #bcb4f6;
+  --color-marca-300: #9a8ef0;
+  --color-marca-400: #7b6be6;
+  --color-marca-500: #5b4bd6;
+  --color-marca-600: #4a3cb8;
+  --color-marca-700: #3a2f91;
+  --color-marca-800: #2b2370;
+  --color-marca-900: #1e194f;
+
+  /* --- Apoio: progresso e estudo ---------------------------------------- */
+  --color-estudo-100: #cdefe9;
+  --color-estudo-500: #0f9d8f;
+  --color-estudo-700: #0a6c62;
+
+  /* --- Semanticas -------------------------------------------------------- */
+  --color-sucesso-100: #d7f0dd;
+  --color-sucesso-500: #2f9e57;
+  --color-sucesso-700: #1d6a39;
+
+  --color-atencao-100: #fbeacd;
+  --color-atencao-500: #c8830f;
+  --color-atencao-700: #8a5a05;
+
+  --color-perigo-100: #fadedd;
+  --color-perigo-500: #d34a45;
+  --color-perigo-700: #97302c;
+
+  /* --- Raios e sombras --------------------------------------------------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-suave: 0 1px 2px rgb(18 18 20 / 0.05);
+  --shadow-elevada: 0 4px 16px -4px rgb(18 18 20 / 0.1);
+
+  /* --- Animacoes --------------------------------------------------------- */
+  --animate-surgir: surgir 0.24s ease-out;
+  --animate-pulsar: pulsar 1.6s ease-in-out infinite;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* =============================================================================
+   Tokens semanticos: mudam entre o modo claro e o escuro.
+   Os componentes usam sempre estes tokens, nunca a cor bruta.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    --fundo: var(--color-neutro-50);
+    --superficie: #ffffff;
+    --superficie-suave: var(--color-neutro-100);
+    --borda: var(--color-neutro-200);
+    --borda-forte: var(--color-neutro-300);
+    --texto: var(--color-neutro-900);
+    --texto-suave: var(--color-neutro-500);
+    --texto-tenue: var(--color-neutro-400);
+    --destaque: var(--color-marca-500);
+    --destaque-forte: var(--color-marca-600);
+    --destaque-suave: var(--color-marca-50);
+    --contraste-destaque: #ffffff;
+    --anel-foco: var(--color-marca-400);
+  }
+
+  .dark {
+    --fundo: var(--color-neutro-950);
+    --superficie: var(--color-neutro-900);
+    --superficie-suave: var(--color-neutro-800);
+    --borda: #2e2e33;
+    --borda-forte: #3f3f45;
+    --texto: var(--color-neutro-100);
+    --texto-suave: #9d9c96;
+    --texto-tenue: #74736e;
+    --destaque: var(--color-marca-400);
+    --destaque-forte: var(--color-marca-300);
+    --destaque-suave: #241f4a;
+    --contraste-destaque: #12101f;
+    --anel-foco: var(--color-marca-400);
+  }
+
+  * {
+    border-color: var(--borda);
+  }
+
+  html {
+    color-scheme: light;
+
+    /* Definida em UserPreferences.fontScale e aplicada por usar-preferencias.
+       Como todo o layout usa rem, alterar aqui redimensiona o sistema inteiro,
+       nao apenas o corpo do texto. */
+    --escala-fonte: 1;
+    font-size: calc(100% * var(--escala-fonte));
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--fundo);
+    color: var(--texto);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Foco sempre visivel: requisito de acessibilidade. */
+  :focus-visible {
+    outline: 2px solid var(--anel-foco);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background-color: var(--destaque-suave);
+    color: var(--texto);
+  }
+
+  /* Duas origens desligam animacoes: a configuracao do sistema operacional
+     e a chave "Reduzir animacoes" salva na conta do usuario. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .movimento-reduzido *,
+  .movimento-reduzido *::before,
+  .movimento-reduzido *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Barra de rolagem discreta, para nao competir com a barra lateral. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--borda-forte) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--borda-forte);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* O <dialog> nativo vem com margens do navegador que quebram o
+     posicionamento centralizado. */
+  dialog::backdrop {
+    backdrop-filter: blur(2px);
+  }
+
+  dialog[open] {
+    display: block;
+  }
+}
+
+/* =============================================================================
+   Utilitarios do design system
+   ========================================================================== */
+
+@utility superficie {
+  background-color: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--radius-lg);
+}
+
+@utility pular-para-conteudo {
+  position: absolute;
+  left: -9999px;
+  z-index: 60;
+  padding: 0.5rem 1rem;
+  background-color: var(--superficie);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--radius-md);
+
+  &:focus {
+    left: 1rem;
+    top: 1rem;
+  }
+}
+
+/* =============================================================================
+   Editor de anotacoes
+   Os estilos ficam aqui, e nao em classes utilitarias, porque o conteudo e
+   gerado pelo ProseMirror e nao passa pelo JSX.
+   ========================================================================== */
+
+@layer components {
+  .conteudo-do-editor {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--texto);
+  }
+
+  .conteudo-do-editor > * + * {
+    margin-top: 0.75em;
+  }
+
+  .conteudo-do-editor h1 {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-top: 1.6em;
+  }
+
+  .conteudo-do-editor h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.4em;
+  }
+
+  .conteudo-do-editor h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 1.2em;
+  }
+
+  .conteudo-do-editor h1:first-child,
+  .conteudo-do-editor h2:first-child,
+  .conteudo-do-editor h3:first-child {
+    margin-top: 0;
+  }
+
+  .conteudo-do-editor a {
+    color: var(--destaque);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .conteudo-do-editor ul,
+  .conteudo-do-editor ol {
+    padding-left: 1.5rem;
+  }
+
+  .conteudo-do-editor ul {
+    list-style: disc;
+  }
+
+  .conteudo-do-editor ol {
+    list-style: decimal;
+  }
+
+  .conteudo-do-editor li > * + * {
+    margin-top: 0.35em;
+  }
+
+  .conteudo-do-editor blockquote {
+    border-left: 3px solid var(--destaque);
+    padding-left: 1rem;
+    color: var(--texto-suave);
+    font-style: italic;
+  }
+
+  .conteudo-do-editor code {
+    background-color: var(--superficie-suave);
+    border-radius: var(--radius-sm);
+    padding: 0.15em 0.35em;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  .conteudo-do-editor pre {
+    background-color: var(--color-neutro-900);
+    color: var(--color-neutro-100);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .conteudo-do-editor pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  .conteudo-do-editor .linha-divisoria,
+  .conteudo-do-editor hr {
+    border: none;
+    border-top: 1px solid var(--borda);
+    margin: 2em 0;
+  }
+
+  .conteudo-do-editor img {
+    border-radius: var(--radius-md);
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* --- Listas de tarefas -------------------------------------------------- */
+
+  .conteudo-do-editor ul[data-type='taskList'] {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .conteudo-do-editor ul[data-type='taskList'] li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .conteudo-do-editor ul[data-type='taskList'] li > label {
+    margin-top: 0.4rem;
+    user-select: none;
+  }
+
+  .conteudo-do-editor ul[data-type='taskList'] input[type='checkbox'] {
+    accent-color: var(--destaque);
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+  }
+
+  .conteudo-do-editor ul[data-type='taskList'] li[data-checked='true'] > div {
+    color: var(--texto-tenue);
+    text-decoration: line-through;
+  }
+
+  /* --- Blocos informativos ------------------------------------------------ */
+
+  .conteudo-do-editor .bloco-informativo {
+    border-radius: var(--radius-md);
+    border-left: 3px solid;
+    padding: 0.9rem 1.1rem;
+  }
+
+  .conteudo-do-editor .bloco-informativo > * + * {
+    margin-top: 0.5em;
+  }
+
+  .conteudo-do-editor .bloco-informativo[data-tom='informacao'] {
+    background-color: var(--color-marca-50);
+    border-color: var(--color-marca-500);
+  }
+
+  .conteudo-do-editor .bloco-informativo[data-tom='atencao'] {
+    background-color: var(--color-atencao-100);
+    border-color: var(--color-atencao-500);
+  }
+
+  .conteudo-do-editor .bloco-informativo[data-tom='sucesso'] {
+    background-color: var(--color-sucesso-100);
+    border-color: var(--color-sucesso-500);
+  }
+
+  .conteudo-do-editor .bloco-informativo[data-tom='perigo'] {
+    background-color: var(--color-perigo-100);
+    border-color: var(--color-perigo-500);
+  }
+
+  .dark .conteudo-do-editor .bloco-informativo[data-tom='informacao'] {
+    background-color: var(--color-marca-900);
+  }
+
+  .dark .conteudo-do-editor .bloco-informativo[data-tom='atencao'],
+  .dark .conteudo-do-editor .bloco-informativo[data-tom='sucesso'],
+  .dark .conteudo-do-editor .bloco-informativo[data-tom='perigo'] {
+    background-color: var(--superficie-suave);
+  }
+
+  /* --- Tabelas ------------------------------------------------------------ */
+
+  .conteudo-do-editor table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    overflow: hidden;
+    margin: 1em 0;
+  }
+
+  .conteudo-do-editor th,
+  .conteudo-do-editor td {
+    border: 1px solid var(--borda);
+    padding: 0.5rem 0.7rem;
+    vertical-align: top;
+    position: relative;
+    min-width: 6rem;
+  }
+
+  .conteudo-do-editor th {
+    background-color: var(--superficie-suave);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .conteudo-do-editor .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--destaque-suave);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .conteudo-do-editor .column-resize-handle {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--destaque);
+    cursor: col-resize;
+  }
+
+  /* --- Marcacao de texto -------------------------------------------------- */
+
+  .conteudo-do-editor mark {
+    border-radius: 0.2em;
+    padding: 0.05em 0.15em;
+    color: var(--color-neutro-900);
+  }
+
+  /* --- Texto de exemplo --------------------------------------------------- */
+
+  .conteudo-do-editor p.is-editor-empty:first-child::before,
+  .conteudo-do-editor h1.is-empty::before,
+  .conteudo-do-editor h2.is-empty::before,
+  .conteudo-do-editor h3.is-empty::before {
+    content: attr(data-placeholder);
+    color: var(--texto-tenue);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* --- Realce de sintaxe (highlight.js) ----------------------------------- */
+
+  .conteudo-do-editor .hljs-comment,
+  .conteudo-do-editor .hljs-quote {
+    color: #8b8b83;
+    font-style: italic;
+  }
+
+  .conteudo-do-editor .hljs-keyword,
+  .conteudo-do-editor .hljs-selector-tag,
+  .conteudo-do-editor .hljs-built_in {
+    color: #bcb4f6;
+  }
+
+  .conteudo-do-editor .hljs-string,
+  .conteudo-do-editor .hljs-attr {
+    color: #a9dfd3;
+  }
+
+  .conteudo-do-editor .hljs-number,
+  .conteudo-do-editor .hljs-literal {
+    color: #f0c987;
+  }
+
+  .conteudo-do-editor .hljs-title,
+  .conteudo-do-editor .hljs-function,
+  .conteudo-do-editor .hljs-section {
+    color: #9ec7f5;
+  }
+
+  .conteudo-do-editor .hljs-type,
+  .conteudo-do-editor .hljs-class .hljs-title {
+    color: #f2a3a0;
+  }
+
+  /* --- Modo de leitura ---------------------------------------------------- */
+
+  .modo-de-leitura .conteudo-do-editor {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+  }
+}

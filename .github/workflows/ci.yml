@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  verificar:
+    name: Lint, tipos e testes
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: sinapse
+          POSTGRES_PASSWORD: sinapse
+          POSTGRES_DB: sinapse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sinapse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://sinapse:sinapse@localhost:5432/sinapse_test?schema=public
+      JWT_ACCESS_SECRET: chave_de_teste_apenas_para_ci_1234567890
+      JWT_REFRESH_SECRET: chave_de_teste_apenas_para_ci_0987654321
+      NEXT_PUBLIC_API_URL: http://localhost:3333/api/v1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Gerar Prisma Client
+        run: pnpm db:generate
+
+      - name: Aplicar migracoes
+        run: pnpm --filter @sinapse/api exec prisma migrate deploy
+
+      - name: Verificar formatacao
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Checagem de tipos
+        run: pnpm typecheck
+
+      - name: Testes
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

@@ -1,0 +1,52 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Cache
+.turbo/
+.eslintcache
+.cache/
+
+# Variaveis de ambiente (nunca versionar)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testes
+coverage/
+.nyc_output/
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Uploads locais
+uploads/
+tmp/
+
+# Claude Code
+.claude/

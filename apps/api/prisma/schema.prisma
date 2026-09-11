@@ -1,0 +1,316 @@
+// =============================================================================
+// Sinapse - schema inicial do banco de dados
+// Etapa 0: identidade do usuario + hierarquia de anotacoes + tags + auditoria.
+// As demais entidades (arquivos, tarefas, calendario, IA, flashcards)
+// entram nas etapas seguintes, sem quebrar este schema.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum Theme {
+  light
+  dark
+  system
+}
+
+enum Locale {
+  pt_BR
+  en_US
+}
+
+enum EntityColor {
+  indigo
+  teal
+  amber
+  rose
+  violet
+  emerald
+  slate
+}
+
+enum TokenType {
+  email_verification
+  password_reset
+}
+
+enum ActivityAction {
+  created
+  updated
+  deleted
+  restored
+  archived
+  logged_in
+  logged_out
+  email_verified
+  password_changed
+  password_reset_requested
+}
+
+enum ActivityEntity {
+  user
+  group
+  section
+  page
+  tag
+}
+
+// -----------------------------------------------------------------------------
+// Identidade
+// -----------------------------------------------------------------------------
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    @db.VarChar(120)
+  email             String    @unique @db.VarChar(255)
+  passwordHash      String?   @db.VarChar(255)
+  avatarUrl         String?   @db.VarChar(500)
+  emailVerifiedAt   DateTime?
+  storageUsedBytes  BigInt    @default(0)
+  storageQuotaBytes BigInt    @default(1073741824)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  preferences  UserPreferences?
+  accounts     Account[]
+  sessions     Session[]
+  groups       Group[]
+  tags         Tag[]
+  activityLogs ActivityLog[]
+  tokens       VerificationToken[]
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// Conta de provedor externo (Google). Um usuario pode ter varias.
+model Account {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @db.Uuid
+  provider          String   @db.VarChar(40)
+  providerAccountId String   @db.VarChar(255)
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  expiresAt         DateTime?
+  scope             String?  @db.VarChar(500)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Sessao ativa. Guarda o hash do refresh token, nunca o token em si.
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @db.VarChar(255)
+  userAgent        String?   @db.VarChar(400)
+  ipAddress        String?   @db.VarChar(64)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Token de uso unico para verificar e-mail ou redefinir senha.
+/// Guarda apenas o hash SHA-256; o valor original so existe no link enviado por e-mail.
+model VerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(64)
+  type      TokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+model UserPreferences {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  theme           Theme    @default(system)
+  locale          Locale   @default(pt_BR)
+  fontScale       Int      @default(100)
+  reducedMotion   Boolean  @default(false)
+  notifications   Json     @default("{\"email\":true,\"inApp\":true,\"reminders\":true}")
+  dashboardLayout Json     @default("[]")
+  aiEnabled       Boolean  @default(false)
+  aiConsentAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// -----------------------------------------------------------------------------
+// Hierarquia de anotacoes: Grupo > Secao > Pagina > Subpagina
+// -----------------------------------------------------------------------------
+
+model Group {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String      @db.Uuid
+  name       String      @db.VarChar(80)
+  icon       String?     @db.VarChar(16)
+  color      EntityColor @default(indigo)
+  position   Int         @default(0)
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections Section[]
+
+  @@index([userId, deletedAt, position])
+  @@map("groups")
+}
+
+model Section {
+  id         String    @id @default(uuid()) @db.Uuid
+  groupId    String    @db.Uuid
+  name       String    @db.VarChar(80)
+  icon       String?   @db.VarChar(16)
+  position   Int       @default(0)
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  group Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  pages Page[]
+
+  @@index([groupId, deletedAt, position])
+  @@map("sections")
+}
+
+model Page {
+  id           String  @id @default(uuid()) @db.Uuid
+  sectionId    String  @db.Uuid
+  parentPageId String? @db.Uuid
+  title        String  @default("Sem titulo") @db.VarChar(200)
+  icon         String? @db.VarChar(16)
+
+  /// Documento do editor no formato ProseMirror.
+  content Json @default("{\"type\":\"doc\",\"content\":[]}")
+
+  /// Texto puro extraido do conteudo, usado pela pesquisa global.
+  contentText String @default("") @db.Text
+
+  wordCount  Int       @default(0)
+  isFavorite Boolean   @default(false)
+  isPinned   Boolean   @default(false)
+  position   Int       @default(0)
+
+  /// Ultima vez que a pagina foi aberta, usado pela lista de recentes.
+  /// Separado de updatedAt porque abrir para ler nao e o mesmo que editar.
+  lastOpenedAt DateTime?
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  section    Section       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  parentPage Page?         @relation("PageToSubpage", fields: [parentPageId], references: [id], onDelete: SetNull)
+  subpages   Page[]        @relation("PageToSubpage")
+  versions   PageVersion[]
+  tags       PageTag[]
+
+  @@index([sectionId, deletedAt, position])
+  @@index([parentPageId])
+  @@index([isFavorite])
+  @@index([lastOpenedAt])
+  @@index([deletedAt])
+  @@map("pages")
+}
+
+/// Snapshot do conteudo, usado pelo historico de versoes.
+model PageVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  pageId    String   @db.Uuid
+  title     String   @db.VarChar(200)
+  content   Json
+  createdAt DateTime @default(now())
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+  @@map("page_versions")
+}
+
+// -----------------------------------------------------------------------------
+// Tags
+// -----------------------------------------------------------------------------
+
+model Tag {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @db.Uuid
+  name      String      @db.VarChar(40)
+  color     EntityColor @default(slate)
+  createdAt DateTime    @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages PageTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model PageTag {
+  pageId String @db.Uuid
+  tagId  String @db.Uuid
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, tagId])
+  @@index([tagId])
+  @@map("page_tags")
+}
+
+// -----------------------------------------------------------------------------
+// Auditoria
+// -----------------------------------------------------------------------------
+
+model ActivityLog {
+  id         String         @id @default(uuid()) @db.Uuid
+  userId     String         @db.Uuid
+  action     ActivityAction
+  entityType ActivityEntity
+  entityId   String?        @db.Uuid
+  metadata   Json?
+  ipAddress  String?        @db.VarChar(64)
+  createdAt  DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("activity_logs")
+}

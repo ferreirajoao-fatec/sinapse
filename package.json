@@ -1,0 +1,39 @@
+{
+  "name": "sinapse",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plataforma inteligente de estudos, anotacoes e organizacao",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "pnpm --filter @sinapse/web dev",
+    "dev:api": "pnpm --filter @sinapse/api dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,css}\"",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "db:migrate": "pnpm --filter @sinapse/api db:migrate",
+    "db:generate": "pnpm --filter @sinapse/api db:generate",
+    "db:seed": "pnpm --filter @sinapse/api db:seed",
+    "db:studio": "pnpm --filter @sinapse/api db:studio",
+    "setup": "pnpm install && pnpm db:up && pnpm db:migrate && pnpm db:seed"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  }
+}
