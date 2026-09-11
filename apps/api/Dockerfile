@@ -2,6 +2,7 @@
 # Contexto de build esperado: raiz do repositorio (nao apps/api).
 FROM node:22-slim AS build
 
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
@@ -14,6 +15,7 @@ RUN pnpm --filter @sinapse/api build
 
 FROM node:22-slim AS runtime
 
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 ENV NODE_ENV=production
 WORKDIR /app
