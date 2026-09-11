@@ -50,3 +50,6 @@ tmp/
 
 # Claude Code
 .claude/
+
+.vercel
+.env*
