@@ -7,11 +7,7 @@ import { Dialogo } from '@/components/ui/dialogo';
 import { usarNavegacao } from '@/hooks/usar-navegacao';
 import { usarPreferencias } from '@/hooks/usar-preferencias';
 import { usarUsuario } from '@/hooks/usar-usuario';
-import {
-  NAVEGACAO_CONFIGURACOES,
-  NAVEGACAO_PRINCIPAL,
-  NAVEGACAO_SECUNDARIA,
-} from '@/lib/rotas';
+import { NAVEGACAO_CONFIGURACOES, NAVEGACAO_PRINCIPAL, NAVEGACAO_SECUNDARIA } from '@/lib/rotas';
 import { cn } from '@/lib/utils';
 
 interface Comando {
@@ -52,16 +48,14 @@ export function PaletaDeComandos() {
       ...NAVEGACAO_PRINCIPAL,
       ...NAVEGACAO_SECUNDARIA,
       ...NAVEGACAO_CONFIGURACOES,
-    ].map(
-      (item) => ({
-        id: `ir-${item.href}`,
-        rotulo: `Ir para ${item.rotulo}`,
-        grupo: 'Navegacao',
-        Icone: item.Icone,
-        detalhe: item.etapa,
-        executar: () => router.push(item.href),
-      }),
-    );
+    ].map((item) => ({
+      id: `ir-${item.href}`,
+      rotulo: `Ir para ${item.rotulo}`,
+      grupo: 'Navegacao',
+      Icone: item.Icone,
+      detalhe: item.etapa,
+      executar: () => router.push(item.href),
+    }));
 
     const acoes: Comando[] = [
       {
@@ -146,7 +140,6 @@ export function PaletaDeComandos() {
         <div className="flex items-center gap-2.5 border-b px-1 pb-3">
           <Search aria-hidden="true" className="size-4 shrink-0 text-[var(--texto-tenue)]" />
           <input
-            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             type="text"
             role="combobox"
@@ -163,8 +156,8 @@ export function PaletaDeComandos() {
 
         {filtrados.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-[var(--texto-suave)]">
-            Nada encontrado para <span className="font-medium text-[var(--texto)]">{busca}</span>.
-            A busca dentro das anotacoes chega na Etapa 6.
+            Nada encontrado para <span className="font-medium text-[var(--texto)]">{busca}</span>. A
+            busca dentro das anotacoes chega na Etapa 6.
           </p>
         ) : (
           <ul
@@ -181,7 +174,7 @@ export function PaletaDeComandos() {
               return (
                 <li key={comando.id}>
                   {novoGrupo ? (
-                    <p className="px-3 pt-3 pb-1 text-2xs font-medium tracking-wide text-[var(--texto-tenue)] uppercase">
+                    <p className="text-2xs px-3 pb-1 pt-3 font-medium uppercase tracking-wide text-[var(--texto-tenue)]">
                       {comando.grupo}
                     </p>
                   ) : null}
@@ -211,7 +204,7 @@ export function PaletaDeComandos() {
           </ul>
         )}
 
-        <div className="flex items-center gap-4 border-t px-3 py-2 text-2xs text-[var(--texto-tenue)]">
+        <div className="text-2xs flex items-center gap-4 border-t px-3 py-2 text-[var(--texto-tenue)]">
           <span className="flex items-center gap-1">
             <kbd className="rounded-sm border px-1 font-mono">↑</kbd>
             <kbd className="rounded-sm border px-1 font-mono">↓</kbd>

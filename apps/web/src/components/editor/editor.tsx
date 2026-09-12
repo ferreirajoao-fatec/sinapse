@@ -216,7 +216,6 @@ export function Editor({
       editor.commands.setContent(conteudoInicial, false);
     }
     // Reagir apenas a troca de documento, nao a cada tecla digitada.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conteudoInicial, editor]);
 
   useEffect(() => {
