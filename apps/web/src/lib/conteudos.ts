@@ -3,10 +3,12 @@ import type {
   AtualizarGrupoInput,
   AtualizarPaginaInput,
   AtualizarSecaoInput,
+  ConfirmarUploadInput,
   CriarEtiquetaInput,
   CriarGrupoInput,
   CriarPaginaInput,
   CriarSecaoInput,
+  CriarUrlDeUploadInput,
   DefinirEtiquetasInput,
   EtiquetaResumida,
   GrupoNaArvore,
@@ -16,6 +18,8 @@ import type {
   PaginaResumida,
   SecaoNaArvore,
   TipoNaLixeira,
+  UrlAssinada,
+  UrlDeUpload,
 } from '@sinapse/shared';
 import { apiFetch } from './api';
 
@@ -115,6 +119,34 @@ export function buscarRecentes() {
 
 export function buscarFavoritas() {
   return apiFetch<PaginaResumida[]>('/pages/favoritas');
+}
+
+// -----------------------------------------------------------------------------
+// Anexos das paginas
+// -----------------------------------------------------------------------------
+
+/** Se false, o backend nao tem S3 configurado: esconda a secao de anexos. */
+export function anexosDeNotasDisponiveis() {
+  return apiFetch<{ habilitado: boolean }>('/pages/anexos/disponivel');
+}
+
+export function criarUrlDeUploadDaPagina(paginaId: string, dados: CriarUrlDeUploadInput) {
+  return apiFetch<UrlDeUpload>(`/pages/${paginaId}/anexos/upload-url`, {
+    method: 'POST',
+    body: dados,
+  });
+}
+
+export function confirmarUploadDaPagina(paginaId: string, dados: ConfirmarUploadInput) {
+  return apiFetch<PaginaCompleta>(`/pages/${paginaId}/anexos`, { method: 'POST', body: dados });
+}
+
+export function urlDeDownloadDoAnexoDaPagina(paginaId: string, anexoId: string) {
+  return apiFetch<UrlAssinada>(`/pages/${paginaId}/anexos/${anexoId}/download-url`);
+}
+
+export function removerAnexoDaPagina(paginaId: string, anexoId: string) {
+  return apiFetch<void>(`/pages/${paginaId}/anexos/${anexoId}`, { method: 'DELETE' });
 }
 
 // -----------------------------------------------------------------------------

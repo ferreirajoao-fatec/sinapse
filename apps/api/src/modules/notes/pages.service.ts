@@ -2,13 +2,18 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { ActivityAction, ActivityEntity, type EntityColor } from '@prisma/client';
 import type {
   AtualizarPaginaInput,
+  ConfirmarUploadInput,
   CriarPaginaInput,
+  CriarUrlDeUploadInput,
   DefinirEtiquetasInput,
   MoverPaginaInput,
   PaginaCompleta,
   PaginaResumida,
   ReordenarInput,
+  UrlAssinada,
+  UrlDeUpload,
 } from '@sinapse/shared';
+import { StorageService } from '../files/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   comoJson,
@@ -16,13 +21,24 @@ import {
   DOCUMENTO_VAZIO,
   exigirEncontrado,
   extrairTexto,
+  montarAnexo,
   montarEtiqueta,
 } from './notes.helpers';
 
 const INCLUIR_CAMINHO = {
   section: { select: { id: true, name: true, group: { select: { id: true, name: true } } } },
   tags: { include: { tag: true } },
+  attachments: { orderBy: { createdAt: 'asc' } },
 } as const;
+
+interface AnexoDoBanco {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: bigint;
+  storageKey: string;
+  createdAt: Date;
+}
 
 interface PaginaDoBanco {
   id: string;
@@ -40,6 +56,7 @@ interface PaginaDoBanco {
   updatedAt: Date;
   section: { id: string; name: string; group: { id: string; name: string } };
   tags: { tag: { id: string; name: string; color: EntityColor } }[];
+  attachments: AnexoDoBanco[];
 }
 
 interface PaginaParaResumo {
@@ -55,7 +72,15 @@ interface PaginaParaResumo {
 
 @Injectable()
 export class PagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
+
+  /** Usado pelo front para esconder a secao de anexos quando nao ha S3 configurado. */
+  get anexosHabilitados(): boolean {
+    return this.storage.habilitado;
+  }
 
   private formatar(pagina: PaginaDoBanco): PaginaCompleta {
     return {
@@ -73,6 +98,7 @@ export class PagesService {
       createdAt: pagina.createdAt.toISOString(),
       updatedAt: pagina.updatedAt.toISOString(),
       tags: pagina.tags.map((vinculo) => montarEtiqueta(vinculo.tag)),
+      anexos: pagina.attachments.map(montarAnexo),
       caminho: {
         grupoId: pagina.section.group.id,
         grupo: pagina.section.group.name,
@@ -82,7 +108,11 @@ export class PagesService {
     };
   }
 
-  async buscar(userId: string, paginaId: string, registrarAbertura = true): Promise<PaginaCompleta> {
+  async buscar(
+    userId: string,
+    paginaId: string,
+    registrarAbertura = true,
+  ): Promise<PaginaCompleta> {
     const db = this.prisma.paraUsuario(userId);
 
     const pagina = await db.page.findFirst({
@@ -445,5 +475,81 @@ export class PagesService {
     await this.prisma.activityLog.create({
       data: { userId, action: acao, entityType: ActivityEntity.page, entityId },
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Anexos
+  // ---------------------------------------------------------------------------
+
+  async criarUrlDeUpload(
+    userId: string,
+    paginaId: string,
+    dados: CriarUrlDeUploadInput,
+  ): Promise<UrlDeUpload> {
+    const db = this.prisma.paraUsuario(userId);
+    await this.exigirPaginaPropria(db, paginaId);
+
+    const storageKey = this.storage.gerarChave('pages', paginaId, dados.fileName);
+    const url = await this.storage.presignUpload(storageKey, dados.mimeType, dados.sizeBytes);
+
+    return { url, storageKey };
+  }
+
+  async confirmarUpload(
+    userId: string,
+    paginaId: string,
+    dados: ConfirmarUploadInput,
+  ): Promise<PaginaCompleta> {
+    const db = this.prisma.paraUsuario(userId);
+    await this.exigirPaginaPropria(db, paginaId);
+
+    await this.prisma.pageAttachment.create({
+      data: {
+        pageId: paginaId,
+        fileName: dados.fileName,
+        mimeType: dados.mimeType,
+        sizeBytes: BigInt(dados.sizeBytes),
+        storageKey: dados.storageKey,
+      },
+    });
+
+    return this.buscar(userId, paginaId, false);
+  }
+
+  async urlDeDownload(userId: string, paginaId: string, anexoId: string): Promise<UrlAssinada> {
+    const db = this.prisma.paraUsuario(userId);
+
+    const anexo = await db.pageAttachment.findFirst({
+      where: { id: anexoId, pageId: paginaId },
+    });
+    const encontrado = exigirEncontrado(anexo, 'Anexo nao encontrado.');
+
+    return { url: await this.storage.presignDownload(encontrado.storageKey) };
+  }
+
+  async removerAnexo(userId: string, paginaId: string, anexoId: string): Promise<void> {
+    const db = this.prisma.paraUsuario(userId);
+
+    const anexo = await db.pageAttachment.findFirst({
+      where: { id: anexoId, pageId: paginaId },
+    });
+    const encontrado = exigirEncontrado(anexo, 'Anexo nao encontrado.');
+
+    await db.pageAttachment.deleteMany({ where: { id: anexoId } });
+    await this.storage.remover(encontrado.storageKey).catch(() => undefined);
+  }
+
+  private async exigirPaginaPropria(
+    db: ReturnType<PrismaService['paraUsuario']>,
+    paginaId: string,
+  ): Promise<void> {
+    const pagina = await db.page.findFirst({
+      where: { id: paginaId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!pagina) {
+      throw new ForbiddenException('Pagina nao encontrada ou nao pertence a sua conta.');
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { EntityColor, Prisma } from '@prisma/client';
 import type {
+  AnexoDePagina,
   EtiquetaResumida,
   GrupoNaArvore,
   PaginaNaArvore,
@@ -117,6 +118,22 @@ export function contarPalavras(texto: string): number {
 /** O campo Json do Prisma nao aceita tipos com propriedades opcionais. */
 export function comoJson(valor: unknown): Prisma.InputJsonObject {
   return valor as Prisma.InputJsonObject;
+}
+
+export function montarAnexo(anexo: {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: bigint;
+  createdAt: Date;
+}): AnexoDePagina {
+  return {
+    id: anexo.id,
+    fileName: anexo.fileName,
+    mimeType: anexo.mimeType,
+    sizeBytes: anexo.sizeBytes.toString(),
+    createdAt: anexo.createdAt.toISOString(),
+  };
 }
 
 export function exigirEncontrado<T>(valor: T | null | undefined, mensagem: string): T {

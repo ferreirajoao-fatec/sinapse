@@ -29,6 +29,7 @@ const CAMINHO_ATE_O_DONO: Record<string, Filtro> = {
   page: (userId) => ({ section: { group: { userId } } }),
   pageVersion: (userId) => ({ page: { section: { group: { userId } } } }),
   pageTag: (userId) => ({ tag: { userId } }),
+  pageAttachment: (userId) => ({ page: { section: { group: { userId } } } }),
   taskColumn: (userId) => ({ userId }),
   task: (userId) => ({ column: { userId } }),
   taskChecklistItem: (userId) => ({ task: { column: { userId } } }),

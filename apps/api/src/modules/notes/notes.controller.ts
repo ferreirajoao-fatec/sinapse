@@ -18,10 +18,12 @@ import {
   atualizarGrupoSchema,
   atualizarPaginaSchema,
   atualizarSecaoSchema,
+  confirmarUploadSchema,
   criarEtiquetaSchema,
   criarGrupoSchema,
   criarPaginaSchema,
   criarSecaoSchema,
+  criarUrlDeUploadSchema,
   definirEtiquetasSchema,
   moverPaginaSchema,
   reordenarSchema,
@@ -30,10 +32,12 @@ import {
   type AtualizarGrupoInput,
   type AtualizarPaginaInput,
   type AtualizarSecaoInput,
+  type ConfirmarUploadInput,
   type CriarEtiquetaInput,
   type CriarGrupoInput,
   type CriarPaginaInput,
   type CriarSecaoInput,
+  type CriarUrlDeUploadInput,
   type DefinirEtiquetasInput,
   type MoverPaginaInput,
   type ReordenarInput,
@@ -153,6 +157,12 @@ export class NotesController {
   // Paginas
   // ---------------------------------------------------------------------------
 
+  @Get('pages/anexos/disponivel')
+  @ApiOperation({ summary: 'Informa se o envio de anexos esta configurado' })
+  anexosDisponivel() {
+    return { habilitado: this.paginas.anexosHabilitados };
+  }
+
   @Get('pages/recentes')
   @ApiOperation({ summary: 'Paginas abertas recentemente' })
   paginasRecentes(@UsuarioAtual('id') userId: string) {
@@ -231,6 +241,51 @@ export class NotesController {
     @Body(new ValidacaoZod(definirEtiquetasSchema)) dados: DefinirEtiquetasInput,
   ) {
     return this.paginas.definirEtiquetas(userId, id, dados);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Anexos das paginas
+  // ---------------------------------------------------------------------------
+
+  @Post('pages/:id/anexos/upload-url')
+  @ApiOperation({ summary: 'Gera uma URL assinada para subir um anexo direto no storage' })
+  criarUrlDeUploadDaPagina(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidacaoZod(criarUrlDeUploadSchema)) dados: CriarUrlDeUploadInput,
+  ) {
+    return this.paginas.criarUrlDeUpload(userId, id, dados);
+  }
+
+  @Post('pages/:id/anexos')
+  @ApiOperation({ summary: 'Confirma que o upload terminou e registra o anexo' })
+  confirmarUploadDaPagina(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidacaoZod(confirmarUploadSchema)) dados: ConfirmarUploadInput,
+  ) {
+    return this.paginas.confirmarUpload(userId, id, dados);
+  }
+
+  @Get('pages/:id/anexos/:anexoId/download-url')
+  @ApiOperation({ summary: 'Gera uma URL assinada temporaria para baixar o anexo' })
+  urlDeDownloadDaPagina(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('anexoId', ParseUUIDPipe) anexoId: string,
+  ) {
+    return this.paginas.urlDeDownload(userId, id, anexoId);
+  }
+
+  @Delete('pages/:id/anexos/:anexoId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove o anexo' })
+  removerAnexoDaPagina(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('anexoId', ParseUUIDPipe) anexoId: string,
+  ) {
+    return this.paginas.removerAnexo(userId, id, anexoId);
   }
 
   // ---------------------------------------------------------------------------

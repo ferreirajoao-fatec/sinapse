@@ -9,6 +9,7 @@ import {
   FilePlus2,
   Focus,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Star,
   Trash2,
@@ -23,17 +24,24 @@ import { SeletorDeEtiquetas } from '@/components/conteudos/seletor-de-etiquetas'
 import { SeletorDeIcone } from '@/components/conteudos/seletor-de-icone';
 import { Editor } from '@/components/editor/editor';
 import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Dialogo } from '@/components/ui/dialogo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usarArvore } from '@/hooks/usar-arvore';
+import { formatarBytes, subirArquivo } from '@/lib/anexos';
 import { ApiError } from '@/lib/api';
 import {
+  anexosDeNotasDisponiveis,
   atualizarPagina,
   buscarPagina,
+  confirmarUploadDaPagina,
   criarPagina,
+  criarUrlDeUploadDaPagina,
   definirEtiquetasDaPagina,
   duplicarPagina,
   excluirPagina,
+  removerAnexoDaPagina,
+  urlDeDownloadDoAnexoDaPagina,
 } from '@/lib/conteudos';
 import { corDeConteudo, iconeDeConteudo } from '@/lib/icones-de-conteudo';
 import { cn } from '@/lib/utils';
@@ -52,13 +60,25 @@ export default function PaginaDaAnotacao() {
   const [modoLeitura, setModoLeitura] = useState(false);
   const [dialogo, setDialogo] = useState<'icone' | 'etiquetas' | 'mover' | 'excluir' | null>(null);
 
+  const [anexosHabilitados, setAnexosHabilitados] = useState(false);
+  const [enviandoArquivo, setEnviandoArquivo] = useState(false);
+  const [erroDeAnexo, setErroDeAnexo] = useState<string | null>(null);
+  const inputArquivo = useRef<HTMLInputElement>(null);
+
   const temporizadorDoTitulo = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    anexosDeNotasDisponiveis()
+      .then(({ habilitado }) => setAnexosHabilitados(habilitado))
+      .catch(() => setAnexosHabilitados(false));
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
 
     setPagina(null);
     setErro(null);
+    setErroDeAnexo(null);
     setModoFoco(false);
     setModoLeitura(false);
 
@@ -73,9 +93,7 @@ export default function PaginaDaAnotacao() {
       })
       .catch((falha) => {
         if (cancelado) return;
-        setErro(
-          falha instanceof ApiError ? falha.message : 'Nao foi possivel abrir esta pagina.',
-        );
+        setErro(falha instanceof ApiError ? falha.message : 'Nao foi possivel abrir esta pagina.');
       });
 
     return () => {
@@ -161,6 +179,67 @@ export default function PaginaDaAnotacao() {
     const atualizada = await atualizarPagina(pagina.id, { isFavorite: !pagina.isFavorite });
     setPagina(atualizada);
     await recarregar();
+  }
+
+  async function enviarArquivo(arquivo: File) {
+    if (!pagina) return;
+
+    setErroDeAnexo(null);
+    setEnviandoArquivo(true);
+
+    try {
+      const { url, storageKey } = await criarUrlDeUploadDaPagina(pagina.id, {
+        fileName: arquivo.name,
+        mimeType: arquivo.type || 'application/octet-stream',
+        sizeBytes: arquivo.size,
+      });
+
+      await subirArquivo(url, arquivo);
+
+      const atualizada = await confirmarUploadDaPagina(pagina.id, {
+        fileName: arquivo.name,
+        mimeType: arquivo.type || 'application/octet-stream',
+        sizeBytes: arquivo.size,
+        storageKey,
+      });
+
+      setPagina(atualizada);
+    } catch (falha) {
+      setErroDeAnexo(
+        falha instanceof ApiError ? falha.message : 'Nao foi possivel enviar o arquivo.',
+      );
+    } finally {
+      setEnviandoArquivo(false);
+      if (inputArquivo.current) inputArquivo.current.value = '';
+    }
+  }
+
+  async function baixarAnexo(anexoId: string) {
+    if (!pagina) return;
+
+    try {
+      const { url } = await urlDeDownloadDoAnexoDaPagina(pagina.id, anexoId);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (falha) {
+      setErroDeAnexo(
+        falha instanceof ApiError ? falha.message : 'Nao foi possivel baixar o anexo.',
+      );
+    }
+  }
+
+  async function removerAnexoDaAnotacao(anexoId: string) {
+    if (!pagina) return;
+
+    try {
+      await removerAnexoDaPagina(pagina.id, anexoId);
+      setPagina((atual) =>
+        atual ? { ...atual, anexos: atual.anexos.filter((anexo) => anexo.id !== anexoId) } : atual,
+      );
+    } catch (falha) {
+      setErroDeAnexo(
+        falha instanceof ApiError ? falha.message : 'Nao foi possivel remover o anexo.',
+      );
+    }
   }
 
   const acoes: AcaoDoMenu[] = [
@@ -334,12 +413,12 @@ export default function PaginaDaAnotacao() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pl-13">
+        <div className="pl-13 flex flex-wrap items-center gap-2">
           {pagina.tags.map((etiqueta) => (
             <span
               key={etiqueta.id}
               className={cn(
-                'rounded-full px-2.5 py-0.5 text-2xs font-medium',
+                'text-2xs rounded-full px-2.5 py-0.5 font-medium',
                 corDeConteudo(etiqueta.color).fundo,
                 corDeConteudo(etiqueta.color).texto,
               )}
@@ -352,19 +431,89 @@ export default function PaginaDaAnotacao() {
             <button
               type="button"
               onClick={() => setDialogo('etiquetas')}
-              className="cursor-pointer rounded-full border border-dashed px-2.5 py-0.5 text-2xs text-[var(--texto-tenue)] transition-colors hover:text-[var(--texto-suave)]"
+              className="text-2xs cursor-pointer rounded-full border border-dashed px-2.5 py-0.5 text-[var(--texto-tenue)] transition-colors hover:text-[var(--texto-suave)]"
             >
               {pagina.tags.length === 0 ? 'Adicionar etiquetas' : 'Editar etiquetas'}
             </button>
           ) : null}
 
           {modoLeitura ? (
-            <span className="ml-auto text-2xs text-[var(--texto-tenue)]">
+            <span className="text-2xs ml-auto text-[var(--texto-tenue)]">
               Modo de leitura - {estatisticas.palavras} palavras
             </span>
           ) : null}
         </div>
       </div>
+
+      {anexosHabilitados && (pagina.anexos.length > 0 || !modoLeitura) ? (
+        <div className="pl-13 space-y-1.5">
+          <span className="block text-sm font-medium">
+            Anexos {pagina.anexos.length > 0 ? `(${pagina.anexos.length})` : ''}
+          </span>
+
+          {erroDeAnexo ? <Alert tipo="erro">{erroDeAnexo}</Alert> : null}
+
+          {pagina.anexos.length > 0 ? (
+            <ul className="max-w-md space-y-1.5">
+              {pagina.anexos.map((anexo) => (
+                <li
+                  key={anexo.id}
+                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => void baixarAnexo(anexo.id)}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+                  >
+                    <Paperclip
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-[var(--texto-tenue)]"
+                    />
+                    <span className="truncate">{anexo.fileName}</span>
+                    <span className="text-2xs shrink-0 text-[var(--texto-tenue)]">
+                      {formatarBytes(anexo.sizeBytes)}
+                    </span>
+                  </button>
+                  {!modoLeitura ? (
+                    <button
+                      type="button"
+                      onClick={() => void removerAnexoDaAnotacao(anexo.id)}
+                      aria-label={`Remover anexo ${anexo.fileName}`}
+                      className="hover:text-perigo-500 shrink-0 cursor-pointer text-[var(--texto-tenue)]"
+                    >
+                      <Trash2 aria-hidden="true" className="size-3.5" />
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {!modoLeitura ? (
+            <>
+              <input
+                ref={inputArquivo}
+                type="file"
+                className="hidden"
+                onChange={(evento) => {
+                  const arquivo = evento.target.files?.[0];
+                  if (arquivo) void enviarArquivo(arquivo);
+                }}
+              />
+              <Button
+                type="button"
+                variante="secundario"
+                tamanho="sm"
+                carregando={enviandoArquivo}
+                onClick={() => inputArquivo.current?.click()}
+              >
+                <Paperclip aria-hidden="true" className="size-3.5" />
+                Anexar arquivo
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       {editor}
 

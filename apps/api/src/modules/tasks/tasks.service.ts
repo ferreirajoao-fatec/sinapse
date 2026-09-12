@@ -294,7 +294,7 @@ export class TasksService {
     const db = this.prisma.paraUsuario(userId);
     await this.exigirTarefaPropria(db, tarefaId);
 
-    const storageKey = this.storage.gerarChave(tarefaId, dados.fileName);
+    const storageKey = this.storage.gerarChave('tasks', tarefaId, dados.fileName);
     const url = await this.storage.presignUpload(storageKey, dados.mimeType, dados.sizeBytes);
 
     return { url, storageKey };

@@ -155,6 +155,15 @@ export interface GrupoNaArvore {
   secoes: SecaoNaArvore[];
 }
 
+export interface AnexoDePagina {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  /** BigInt no banco; chega como string para nao perder precisao no JSON. */
+  sizeBytes: string;
+  createdAt: string;
+}
+
 export interface PaginaCompleta {
   id: string;
   sectionId: string;
@@ -170,6 +179,7 @@ export interface PaginaCompleta {
   createdAt: string;
   updatedAt: string;
   tags: EtiquetaResumida[];
+  anexos: AnexoDePagina[];
   caminho: { grupoId: string; grupo: string; secaoId: string; secao: string };
 }
 

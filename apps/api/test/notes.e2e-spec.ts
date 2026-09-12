@@ -8,7 +8,9 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 
 /**
  * Hierarquia de anotacoes e, principalmente, isolamento entre contas.
- * Requer os containers em execucao (pnpm db:up).
+ * Requer os containers em execucao (pnpm db:up). Upload/download de anexos
+ * fica de fora daqui porque depende de S3 configurado no ambiente; esse
+ * fluxo foi validado manualmente (ver storage.service.ts).
  */
 describe('Anotacoes (e2e)', () => {
   let app: INestApplication;
@@ -295,6 +297,48 @@ describe('Anotacoes (e2e)', () => {
 
     expect(daAlice.body.length).toBeGreaterThan(0);
     expect(doBob.body).toEqual([]);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Anexos
+  // ---------------------------------------------------------------------------
+
+  it('informa se o envio de anexos esta configurado', async () => {
+    const resposta = await request(app.getHttpServer())
+      .get('/api/v1/pages/anexos/disponivel')
+      .set('Cookie', cookiesAlice)
+      .expect(200);
+
+    expect(typeof resposta.body.habilitado).toBe('boolean');
+  });
+
+  it('o Bob nao consegue gerar url de upload nem baixar/remover anexo de uma pagina da Alice', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/v1/pages/${paginaDaAlice}/anexos/upload-url`)
+      .set('Cookie', cookiesBob)
+      .send({ fileName: 'invasao.pdf', mimeType: 'application/pdf', sizeBytes: 1024 })
+      .expect(403);
+
+    const anexoInexistente = '00000000-0000-0000-0000-000000000000';
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/pages/${paginaDaAlice}/anexos/${anexoInexistente}/download-url`)
+      .set('Cookie', cookiesBob)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/pages/${paginaDaAlice}/anexos/${anexoInexistente}`)
+      .set('Cookie', cookiesBob)
+      .expect(404);
+  });
+
+  it('a Alice recebe 404 ao buscar download de um anexo que nao existe', async () => {
+    const anexoInexistente = '00000000-0000-0000-0000-000000000000';
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/pages/${paginaDaAlice}/anexos/${anexoInexistente}/download-url`)
+      .set('Cookie', cookiesAlice)
+      .expect(404);
   });
 
   // ---------------------------------------------------------------------------

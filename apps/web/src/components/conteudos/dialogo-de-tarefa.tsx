@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { usarArvore } from '@/hooks/usar-arvore';
 import { ApiError } from '@/lib/api';
+import { formatarBytes } from '@/lib/anexos';
 import { cn } from '@/lib/utils';
 import { DialogoDeConfirmacao } from './dialogo-de-confirmacao';
 import {
@@ -70,14 +71,6 @@ function achatarPaginas(grupos: GrupoNaArvore[]): PaginaAchatada[] {
 
 function paraDataDoCampo(iso: string | null): string {
   return iso ? iso.slice(0, 10) : '';
-}
-
-function formatarBytes(valor: string): string {
-  const bytes = Number(valor);
-  if (!Number.isFinite(bytes)) return valor;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function DialogoDeTarefa({

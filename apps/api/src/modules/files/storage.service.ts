@@ -32,10 +32,10 @@ export class StorageService {
     );
   }
 
-  /** Chave unica do objeto no bucket, isolada por tarefa. */
-  gerarChave(taskId: string, fileName: string): string {
+  /** Chave unica do objeto no bucket, isolada por prefixo (ex.: "tasks", "pages") e dono. */
+  gerarChave(prefixo: string, donoId: string, fileName: string): string {
     const nomeSeguro = fileName.replace(/[^\w.-]+/g, '_').slice(-140);
-    return `tasks/${taskId}/${randomUUID()}-${nomeSeguro}`;
+    return `${prefixo}/${donoId}/${randomUUID()}-${nomeSeguro}`;
   }
 
   async presignUpload(chave: string, mimeType: string, tamanho: number): Promise<string> {
