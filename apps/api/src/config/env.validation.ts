@@ -34,6 +34,17 @@ export const envSchema = z
     /** Envio de e-mail. Sem a chave, os links sao impressos no terminal. */
     RESEND_API_KEY: z.string().optional(),
     MAIL_FROM: z.string().default('Sinapse <onboarding@resend.dev>'),
+
+    /**
+     * Armazenamento de anexos, compativel com S3 (AWS S3, Cloudflare R2,
+     * Backblaze B2, MinIO local). Sem as quatro juntas, o recurso de anexos
+     * fica desabilitado e some da interface, sem quebrar o resto do app.
+     */
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_REGION: z.string().default('auto'),
+    S3_BUCKET: z.string().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
   })
   .superRefine((valores, ctx) => {
     const temId = Boolean(valores.GOOGLE_CLIENT_ID);
@@ -45,6 +56,24 @@ export const envSchema = z
         path: ['GOOGLE_CLIENT_ID'],
         message:
           'Defina GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET juntos, ou deixe os dois em branco.',
+      });
+    }
+
+    const camposDeS3 = [
+      valores.S3_ENDPOINT,
+      valores.S3_BUCKET,
+      valores.S3_ACCESS_KEY_ID,
+      valores.S3_SECRET_ACCESS_KEY,
+    ];
+    const algumS3 = camposDeS3.some(Boolean);
+    const todosS3 = camposDeS3.every(Boolean);
+
+    if (algumS3 && !todosS3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['S3_ENDPOINT'],
+        message:
+          'Defina S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID e S3_SECRET_ACCESS_KEY juntos, ou deixe os quatro em branco.',
       });
     }
 

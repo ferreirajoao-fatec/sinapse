@@ -63,6 +63,15 @@ enum ActivityEntity {
   section
   page
   tag
+  task_column
+  task
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
 }
 
 // -----------------------------------------------------------------------------
@@ -87,6 +96,7 @@ model User {
   sessions     Session[]
   groups       Group[]
   tags         Tag[]
+  taskColumns  TaskColumn[]
   activityLogs ActivityLog[]
   tokens       VerificationToken[]
 
@@ -242,6 +252,7 @@ model Page {
   subpages   Page[]        @relation("PageToSubpage")
   versions   PageVersion[]
   tags       PageTag[]
+  tasks      Task[]
 
   @@index([sectionId, deletedAt, position])
   @@index([parentPageId])
@@ -293,6 +304,93 @@ model PageTag {
   @@id([pageId, tagId])
   @@index([tagId])
   @@map("page_tags")
+}
+
+// -----------------------------------------------------------------------------
+// Tarefas: Coluna > Tarefa > Checklist / Anexos
+// -----------------------------------------------------------------------------
+
+model TaskColumn {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String      @db.Uuid
+  name       String      @db.VarChar(80)
+  color      EntityColor @default(indigo)
+  position   Int         @default(0)
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId, deletedAt, position])
+  @@map("task_columns")
+}
+
+model Task {
+  id          String       @id @default(uuid()) @db.Uuid
+  columnId    String       @db.Uuid
+  title       String       @db.VarChar(200)
+  description String?      @db.Text
+  priority    TaskPriority @default(medium)
+  dueDate     DateTime?
+  completedAt DateTime?
+  position    Int          @default(0)
+
+  /// Pagina de anotacoes vinculada, opcional.
+  pageId String? @db.Uuid
+
+  /// Reservado para a Etapa 8 (Calendario). Sem relacao de verdade ainda:
+  /// o modelo de evento nao existe. So guarda o id para nao precisar migrar
+  /// de novo quando o Calendario chegar.
+  calendarEventId String? @db.Uuid
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  column      TaskColumn           @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  page        Page?                @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  checklist   TaskChecklistItem[]
+  attachments TaskAttachment[]
+
+  @@index([columnId, deletedAt, position])
+  @@index([pageId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+model TaskChecklistItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  label     String   @db.VarChar(200)
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, position])
+  @@map("task_checklist_items")
+}
+
+/// Arquivo enviado para um storage compativel com S3. O objeto em si nao
+/// mora no banco, so a referencia (storageKey) e os metadados.
+model TaskAttachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  taskId     String   @db.Uuid
+  fileName   String   @db.VarChar(255)
+  mimeType   String   @db.VarChar(120)
+  sizeBytes  BigInt
+  storageKey String   @db.VarChar(500)
+  createdAt  DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
 }
 
 // -----------------------------------------------------------------------------

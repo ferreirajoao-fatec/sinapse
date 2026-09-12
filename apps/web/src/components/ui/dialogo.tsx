@@ -57,14 +57,19 @@ export function Dialogo({
         }
       }}
       className={cn(
-        'superficie fixed top-[12vh] m-0 w-[calc(100%-2rem)] shadow-elevada backdrop:bg-black/40',
-        'left-1/2 -translate-x-1/2 text-[var(--texto)] open:animate-surgir',
+        'superficie shadow-elevada fixed top-[12vh] m-0 w-[calc(100%-2rem)] backdrop:bg-black/40',
+        'open:animate-surgir left-1/2 -translate-x-1/2 text-[var(--texto)]',
         larguraMaxima,
       )}
     >
-      <div className={cn('flex items-start justify-between gap-4', semPadding ? 'p-4 pb-0' : 'p-5 pb-3')}>
+      <div
+        className={cn(
+          'flex shrink-0 items-start justify-between gap-4',
+          semPadding ? 'p-4 pb-0' : 'p-5 pb-3',
+        )}
+      >
         <div className="space-y-1">
-          <h2 className="text-base leading-none font-medium">{titulo}</h2>
+          <h2 className="text-base font-medium leading-none">{titulo}</h2>
           {descricao ? <p className="text-sm text-[var(--texto-suave)]">{descricao}</p> : null}
         </div>
 
@@ -72,13 +77,15 @@ export function Dialogo({
           type="button"
           onClick={aoFechar}
           aria-label="Fechar"
-          className="-mt-1 -mr-1 flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]"
+          className="-mr-1 -mt-1 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]"
         >
           <X aria-hidden="true" className="size-4" />
         </button>
       </div>
 
-      <div className={semPadding ? '' : 'px-5 pb-5'}>{children}</div>
+      <div className={cn('max-h-[70vh] overflow-y-auto', semPadding ? '' : 'px-5 pb-5')}>
+        {children}
+      </div>
     </dialog>
   );
 }

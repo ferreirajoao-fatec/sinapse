@@ -29,6 +29,10 @@ const CAMINHO_ATE_O_DONO: Record<string, Filtro> = {
   page: (userId) => ({ section: { group: { userId } } }),
   pageVersion: (userId) => ({ page: { section: { group: { userId } } } }),
   pageTag: (userId) => ({ tag: { userId } }),
+  taskColumn: (userId) => ({ userId }),
+  task: (userId) => ({ column: { userId } }),
+  taskChecklistItem: (userId) => ({ task: { column: { userId } } }),
+  taskAttachment: (userId) => ({ task: { column: { userId } } }),
 };
 
 /** Operacoes em que o filtro pode ser injetado com seguranca. */

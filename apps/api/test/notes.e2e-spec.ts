@@ -143,7 +143,10 @@ describe('Anotacoes (e2e)', () => {
         content: {
           type: 'doc',
           content: [
-            { type: 'paragraph', content: [{ type: 'text', text: 'uma frase com cinco palavras' }] },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'uma frase com cinco palavras' }],
+            },
           ],
         },
       })
@@ -320,8 +323,16 @@ describe('Anotacoes (e2e)', () => {
     expect(naLixeira).toBeDefined();
     expect(naLixeira.tipo).toBe('pagina');
 
-    // As subpaginas cairam junto e nao aparecem como linhas separadas.
-    expect(lixeira.body.filter((item: { tipo: string }) => item.tipo === 'pagina')).toHaveLength(1);
+    // As subpaginas cairam junto e nao aparecem como linhas separadas (a
+    // lixeira pode ter outras paginas de testes anteriores, como a copia
+    // ja excluida no teste de duplicar).
+    const nomesDePaginasNaLixeira = lixeira.body
+      .filter((item: { tipo: string }) => item.tipo === 'pagina')
+      .map((item: { nome: string }) => item.nome);
+
+    expect(nomesDePaginasNaLixeira).toContain('Normalizacao');
+    expect(nomesDePaginasNaLixeira).not.toContain('Resumo 3FN');
+    expect(nomesDePaginasNaLixeira).not.toContain('Filha');
 
     await request(app.getHttpServer())
       .post(`/api/v1/trash/pagina/${paginaDaAlice}/restaurar`)

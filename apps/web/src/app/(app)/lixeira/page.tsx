@@ -1,7 +1,7 @@
 'use client';
 
 import type { ItemDaLixeira, TipoNaLixeira } from '@sinapse/shared';
-import { FileText, FolderOpen, RotateCcw, Trash2 } from 'lucide-react';
+import { FileText, FolderOpen, ListChecks, RotateCcw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { DialogoDeConfirmacao } from '@/components/conteudos/dialogo-de-confirmacao';
 import { Trilha } from '@/components/navegacao/trilha';
@@ -25,6 +25,8 @@ const ROTULOS: Record<TipoNaLixeira, string> = {
   grupo: 'Grupo',
   secao: 'Secao',
   pagina: 'Pagina',
+  coluna_de_tarefas: 'Coluna',
+  tarefa: 'Tarefa',
 };
 
 function formatarData(iso: string): string {
@@ -109,7 +111,11 @@ export default function PaginaDaLixeira() {
           {itens.map((item) => {
             const Icone = iconeDeConteudo(
               item.icone,
-              item.tipo === 'pagina' ? FileText : FolderOpen,
+              item.tipo === 'pagina'
+                ? FileText
+                : item.tipo === 'tarefa' || item.tipo === 'coluna_de_tarefas'
+                  ? ListChecks
+                  : FolderOpen,
             );
 
             return (

@@ -309,7 +309,9 @@ export class NotesController {
 
   private validarTipo(tipo: string): TipoNaLixeira {
     if (!TIPOS_NA_LIXEIRA.includes(tipo as TipoNaLixeira)) {
-      throw new BadRequestException('Tipo invalido. Use grupo, secao ou pagina.');
+      throw new BadRequestException(
+        'Tipo invalido. Use grupo, secao, pagina, coluna_de_tarefas ou tarefa.',
+      );
     }
 
     return tipo as TipoNaLixeira;

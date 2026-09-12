@@ -90,7 +90,12 @@ export const definirEtiquetasSchema = z.object({
 // -----------------------------------------------------------------------------
 
 export const criarEtiquetaSchema = z.object({
-  name: z.string().trim().toLowerCase().min(1, 'Informe um nome').max(40, 'No maximo 40 caracteres'),
+  name: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, 'Informe um nome')
+    .max(40, 'No maximo 40 caracteres'),
   color: z.enum(ENTITY_COLORS).default('slate'),
 });
 
@@ -100,7 +105,13 @@ export const atualizarEtiquetaSchema = criarEtiquetaSchema.partial();
 // Lixeira
 // -----------------------------------------------------------------------------
 
-export const TIPOS_NA_LIXEIRA = ['grupo', 'secao', 'pagina'] as const;
+export const TIPOS_NA_LIXEIRA = [
+  'grupo',
+  'secao',
+  'pagina',
+  'coluna_de_tarefas',
+  'tarefa',
+] as const;
 export type TipoNaLixeira = (typeof TIPOS_NA_LIXEIRA)[number];
 
 // -----------------------------------------------------------------------------

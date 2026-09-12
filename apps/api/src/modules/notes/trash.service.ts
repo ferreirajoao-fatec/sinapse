@@ -17,7 +17,7 @@ export class TrashService {
   async listar(userId: string): Promise<ItemDaLixeira[]> {
     const db = this.prisma.paraUsuario(userId);
 
-    const [grupos, secoes, paginas] = await Promise.all([
+    const [grupos, secoes, paginas, colunas, tarefas] = await Promise.all([
       db.group.findMany({
         where: { deletedAt: { not: null } },
         orderBy: { deletedAt: 'desc' },
@@ -37,6 +37,16 @@ export class TrashService {
         include: {
           section: { select: { name: true, deletedAt: true, group: { select: { name: true } } } },
         },
+      }),
+      db.taskColumn.findMany({
+        where: { deletedAt: { not: null } },
+        orderBy: { deletedAt: 'desc' },
+        include: { _count: { select: { tasks: true } } },
+      }),
+      db.task.findMany({
+        where: { deletedAt: { not: null } },
+        orderBy: { deletedAt: 'desc' },
+        include: { column: { select: { name: true, deletedAt: true } } },
       }),
     ]);
 
@@ -90,7 +100,36 @@ export class TrashService {
       });
     }
 
-    return itens.sort((a, b) => new Date(b.excluidoEm).getTime() - new Date(a.excluidoEm).getTime());
+    for (const coluna of colunas) {
+      itens.push({
+        tipo: 'coluna_de_tarefas',
+        id: coluna.id,
+        nome: coluna.name,
+        icone: null,
+        excluidoEm: coluna.deletedAt!.toISOString(),
+        contexto: null,
+        filhos: coluna._count.tasks,
+      });
+    }
+
+    for (const tarefa of tarefas) {
+      // Se a coluna tambem esta na lixeira, esta tarefa caiu junto.
+      if (tarefa.column.deletedAt) continue;
+
+      itens.push({
+        tipo: 'tarefa',
+        id: tarefa.id,
+        nome: tarefa.title,
+        icone: null,
+        excluidoEm: tarefa.deletedAt!.toISOString(),
+        contexto: tarefa.column.name,
+        filhos: 0,
+      });
+    }
+
+    return itens.sort(
+      (a, b) => new Date(b.excluidoEm).getTime() - new Date(a.excluidoEm).getTime(),
+    );
   }
 
   /**
@@ -150,66 +189,130 @@ export class TrashService {
       return;
     }
 
-    const pagina = await db.page.findFirst({
-      where: { id, deletedAt: { not: null } },
-      include: { section: { select: { deletedAt: true, group: { select: { deletedAt: true } } } } },
-    });
-
-    if (!pagina) {
-      throw new ForbiddenException('Pagina nao encontrada na lixeira.');
-    }
-
-    if (pagina.section.deletedAt || pagina.section.group.deletedAt) {
-      throw new ForbiddenException('A secao desta pagina esta na lixeira. Restaure a secao primeiro.');
-    }
-
-    const quando = pagina.deletedAt!;
-
-    await db.page.updateMany({ where: { id }, data: { deletedAt: null } });
-
-    // Subpaginas que cairam no mesmo instante voltam junto.
-    let nivel = [id];
-    while (nivel.length > 0) {
-      const filhas = await db.page.findMany({
-        where: { parentPageId: { in: nivel }, deletedAt: quando },
-        select: { id: true },
+    if (tipo === 'pagina') {
+      const pagina = await db.page.findFirst({
+        where: { id, deletedAt: { not: null } },
+        include: {
+          section: { select: { deletedAt: true, group: { select: { deletedAt: true } } } },
+        },
       });
 
-      if (filhas.length === 0) break;
+      if (!pagina) {
+        throw new ForbiddenException('Pagina nao encontrada na lixeira.');
+      }
 
-      const ids = filhas.map((filha) => filha.id);
-      await db.page.updateMany({ where: { id: { in: ids } }, data: { deletedAt: null } });
-      nivel = ids;
+      if (pagina.section.deletedAt || pagina.section.group.deletedAt) {
+        throw new ForbiddenException(
+          'A secao desta pagina esta na lixeira. Restaure a secao primeiro.',
+        );
+      }
+
+      const quando = pagina.deletedAt!;
+
+      await db.page.updateMany({ where: { id }, data: { deletedAt: null } });
+
+      // Subpaginas que cairam no mesmo instante voltam junto.
+      let nivel = [id];
+      while (nivel.length > 0) {
+        const filhas = await db.page.findMany({
+          where: { parentPageId: { in: nivel }, deletedAt: quando },
+          select: { id: true },
+        });
+
+        if (filhas.length === 0) break;
+
+        const ids = filhas.map((filha) => filha.id);
+        await db.page.updateMany({ where: { id: { in: ids } }, data: { deletedAt: null } });
+        nivel = ids;
+      }
+
+      await this.registrar(userId, ActivityEntity.page, id);
+      return;
     }
 
-    await this.registrar(userId, ActivityEntity.page, id);
+    if (tipo === 'coluna_de_tarefas') {
+      const coluna = await db.taskColumn.findFirst({ where: { id, deletedAt: { not: null } } });
+
+      if (!coluna) {
+        throw new ForbiddenException('Coluna nao encontrada na lixeira.');
+      }
+
+      const quando = coluna.deletedAt!;
+
+      await db.taskColumn.updateMany({ where: { id }, data: { deletedAt: null } });
+      await db.task.updateMany({
+        where: { columnId: id, deletedAt: quando },
+        data: { deletedAt: null },
+      });
+
+      await this.registrar(userId, ActivityEntity.task_column, id);
+      return;
+    }
+
+    // tipo === 'tarefa'
+    const tarefa = await db.task.findFirst({
+      where: { id, deletedAt: { not: null } },
+      include: { column: { select: { deletedAt: true } } },
+    });
+
+    if (!tarefa) {
+      throw new ForbiddenException('Tarefa nao encontrada na lixeira.');
+    }
+
+    if (tarefa.column.deletedAt) {
+      throw new ForbiddenException(
+        'A coluna desta tarefa esta na lixeira. Restaure a coluna primeiro.',
+      );
+    }
+
+    await db.task.updateMany({ where: { id }, data: { deletedAt: null } });
+
+    await this.registrar(userId, ActivityEntity.task, id);
   }
 
   /** Exclusao definitiva de um item. A cascata do banco leva os filhos. */
   async excluirDefinitivamente(userId: string, tipo: TipoNaLixeira, id: string): Promise<void> {
     const db = this.prisma.paraUsuario(userId);
 
-    const removidos =
-      tipo === 'grupo'
-        ? await db.group.deleteMany({ where: { id, deletedAt: { not: null } } })
-        : tipo === 'secao'
-          ? await db.section.deleteMany({ where: { id, deletedAt: { not: null } } })
-          : await db.page.deleteMany({ where: { id, deletedAt: { not: null } } });
+    const removidos = await this.deletarPorTipo(db, tipo, { id, deletedAt: { not: null } });
 
     if (removidos.count === 0) {
       throw new ForbiddenException('Item nao encontrado na lixeira.');
     }
   }
 
-  /** Esvazia a lixeira inteira. Grupos primeiro, para a cascata fazer o resto. */
+  private async deletarPorTipo(
+    db: ReturnType<PrismaService['paraUsuario']>,
+    tipo: TipoNaLixeira,
+    where: { id: string; deletedAt: { not: null } },
+  ): Promise<{ count: number }> {
+    switch (tipo) {
+      case 'grupo':
+        return db.group.deleteMany({ where });
+      case 'secao':
+        return db.section.deleteMany({ where });
+      case 'pagina':
+        return db.page.deleteMany({ where });
+      case 'coluna_de_tarefas':
+        return db.taskColumn.deleteMany({ where });
+      case 'tarefa':
+        return db.task.deleteMany({ where });
+    }
+  }
+
+  /** Esvazia a lixeira inteira. Grupos e colunas primeiro, para a cascata fazer o resto. */
   async esvaziar(userId: string): Promise<{ removidos: number }> {
     const db = this.prisma.paraUsuario(userId);
 
     const grupos = await db.group.deleteMany({ where: { deletedAt: { not: null } } });
     const secoes = await db.section.deleteMany({ where: { deletedAt: { not: null } } });
     const paginas = await db.page.deleteMany({ where: { deletedAt: { not: null } } });
+    const colunas = await db.taskColumn.deleteMany({ where: { deletedAt: { not: null } } });
+    const tarefas = await db.task.deleteMany({ where: { deletedAt: { not: null } } });
 
-    return { removidos: grupos.count + secoes.count + paginas.count };
+    return {
+      removidos: grupos.count + secoes.count + paginas.count + colunas.count + tarefas.count,
+    };
   }
 
   private async registrar(
