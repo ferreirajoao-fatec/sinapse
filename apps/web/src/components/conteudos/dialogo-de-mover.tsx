@@ -95,9 +95,7 @@ export function DialogoDeMover({
                   </div>
 
                   {grupo.secoes.length === 0 ? (
-                    <p className="px-2 pb-1 pl-8 text-xs text-[var(--texto-tenue)]">
-                      Sem secoes
-                    </p>
+                    <p className="px-2 pb-1 pl-8 text-xs text-[var(--texto-tenue)]">Sem secoes</p>
                   ) : (
                     grupo.secoes.map((secao) => {
                       const atual = secao.id === pagina.sectionId;
@@ -112,7 +110,7 @@ export function DialogoDeMover({
                           disabled={atual}
                           onClick={() => setDestino(secao.id)}
                           className={cn(
-                            'flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-6 text-left text-sm transition-colors',
+                            'flex w-full items-center gap-2 rounded-md py-1.5 pl-6 pr-2 text-left text-sm transition-colors',
                             atual
                               ? 'cursor-not-allowed text-[var(--texto-tenue)]'
                               : 'cursor-pointer hover:bg-[var(--superficie-suave)]',

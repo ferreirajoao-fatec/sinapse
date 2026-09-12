@@ -20,7 +20,7 @@ export function NavegacaoInferior() {
   return (
     <nav
       aria-label="Navegacao rapida"
-      className="fixed inset-x-0 bottom-0 z-30 border-t bg-[var(--fundo)]/95 backdrop-blur sm:hidden"
+      className="bg-[var(--fundo)]/95 fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur sm:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="flex items-stretch">
@@ -33,7 +33,7 @@ export function NavegacaoInferior() {
                 href={item.href}
                 aria-current={ativo ? 'page' : undefined}
                 className={cn(
-                  'flex h-14 flex-col items-center justify-center gap-1 text-2xs transition-colors',
+                  'text-2xs flex h-14 flex-col items-center justify-center gap-1 transition-colors',
                   ativo ? 'text-[var(--destaque)]' : 'text-[var(--texto-suave)]',
                 )}
               >
@@ -48,7 +48,7 @@ export function NavegacaoInferior() {
           <button
             type="button"
             onClick={abrirGaveta}
-            className="flex h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 text-2xs text-[var(--texto-suave)] transition-colors"
+            className="text-2xs flex h-14 w-full cursor-pointer flex-col items-center justify-center gap-1 text-[var(--texto-suave)] transition-colors"
           >
             <Menu aria-hidden="true" className="size-5" />
             Menu

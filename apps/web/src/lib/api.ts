@@ -69,9 +69,10 @@ export async function apiFetch<T>(caminho: string, opcoes: OpcoesDaRequisicao = 
     return undefined as T;
   }
 
-  const corpo = (await resposta.json().catch(() => null)) as
-    | { message?: string; campos?: Record<string, string> }
-    | null;
+  const corpo = (await resposta.json().catch(() => null)) as {
+    message?: string;
+    campos?: Record<string, string>;
+  } | null;
 
   if (!resposta.ok) {
     throw new ApiError(

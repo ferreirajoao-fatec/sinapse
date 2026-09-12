@@ -38,8 +38,7 @@ export function SeletorDeEtiquetas({
     (etiqueta) => !escolhidas.has(etiqueta.id) && etiqueta.name.includes(termo),
   );
 
-  const podeCriar =
-    termo.length > 0 && !disponiveis.some((etiqueta) => etiqueta.name === termo);
+  const podeCriar = termo.length > 0 && !disponiveis.some((etiqueta) => etiqueta.name === termo);
 
   async function criarEAplicar() {
     setErro(null);
@@ -73,7 +72,7 @@ export function SeletorDeEtiquetas({
             <li key={etiqueta.id}>
               <span
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-medium',
+                  'text-2xs inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-medium',
                   corDeConteudo(etiqueta.color).fundo,
                   corDeConteudo(etiqueta.color).texto,
                 )}
@@ -82,9 +81,7 @@ export function SeletorDeEtiquetas({
                 <button
                   type="button"
                   aria-label={`Remover ${etiqueta.name}`}
-                  onClick={() =>
-                    aoAlterar(selecionadas.filter((item) => item.id !== etiqueta.id))
-                  }
+                  onClick={() => aoAlterar(selecionadas.filter((item) => item.id !== etiqueta.id))}
                   className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
                 >
                   <X aria-hidden="true" className="size-3" />
@@ -125,7 +122,7 @@ export function SeletorDeEtiquetas({
                     aoAlterar([...selecionadas, etiqueta]);
                     setBusca('');
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-2xs transition-colors hover:bg-[var(--superficie-suave)]"
+                  className="text-2xs inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 transition-colors hover:bg-[var(--superficie-suave)]"
                 >
                   <span
                     className={cn('size-2 rounded-full', corDeConteudo(etiqueta.color).ponto)}

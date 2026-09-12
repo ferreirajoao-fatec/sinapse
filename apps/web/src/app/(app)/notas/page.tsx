@@ -33,8 +33,7 @@ export default function PaginaDeNotas() {
 
   const totalDePaginas = grupos.reduce(
     (soma, grupo) =>
-      soma +
-      grupo.secoes.reduce((porGrupo, secao) => porGrupo + contarPaginas(secao.paginas), 0),
+      soma + grupo.secoes.reduce((porGrupo, secao) => porGrupo + contarPaginas(secao.paginas), 0),
     0,
   );
 
@@ -157,8 +156,7 @@ export default function PaginaDeNotas() {
 
 function contarPaginas(paginas: { subpaginas: unknown[] }[]): number {
   return paginas.reduce(
-    (soma, pagina) =>
-      soma + 1 + contarPaginas(pagina.subpaginas as { subpaginas: unknown[] }[]),
+    (soma, pagina) => soma + 1 + contarPaginas(pagina.subpaginas as { subpaginas: unknown[] }[]),
     0,
   );
 }
@@ -209,7 +207,7 @@ function ListaDePaginas({
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{pagina.title}</span>
-                      <span className="block truncate text-2xs text-[var(--texto-tenue)]">
+                      <span className="text-2xs block truncate text-[var(--texto-tenue)]">
                         {pagina.caminho.grupo} / {pagina.caminho.secao}
                       </span>
                     </span>

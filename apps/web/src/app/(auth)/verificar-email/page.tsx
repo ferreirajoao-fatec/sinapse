@@ -40,7 +40,10 @@ function Verificacao() {
   if (estado.situacao === 'verificando') {
     return (
       <div className="space-y-4 text-center">
-        <Loader2 aria-hidden="true" className="mx-auto size-6 animate-spin text-[var(--destaque)]" />
+        <Loader2
+          aria-hidden="true"
+          className="mx-auto size-6 animate-spin text-[var(--destaque)]"
+        />
         <p className="text-sm text-[var(--texto-suave)]">Confirmando seu e-mail...</p>
       </div>
     );

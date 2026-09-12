@@ -54,7 +54,7 @@ export function Gaveta() {
           type="button"
           onClick={fecharGaveta}
           aria-label="Fechar o menu"
-          className="absolute top-4 right-3 flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]"
+          className="absolute right-3 top-4 flex size-8 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]"
         >
           <X aria-hidden="true" className="size-4" />
         </button>

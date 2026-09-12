@@ -8,7 +8,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { API_URL } from '@/lib/api';
 
 const proximosPassos = [
-  { etapa: '1', titulo: 'Cadastro e login', descricao: 'JWT, Google OAuth e verificacao de e-mail' },
+  {
+    etapa: '1',
+    titulo: 'Cadastro e login',
+    descricao: 'JWT, Google OAuth e verificacao de e-mail',
+  },
   { etapa: '2', titulo: 'Layout do aplicativo', descricao: 'Barra lateral, breadcrumbs e atalhos' },
   { etapa: '3', titulo: 'Grupos, secoes e paginas', descricao: 'Hierarquia com arrastar e soltar' },
   { etapa: '4', titulo: 'Editor de anotacoes', descricao: 'TipTap com salvamento automatico' },
@@ -37,7 +41,7 @@ export default function PaginaInicial() {
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link
               href="/design-system"
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--destaque)] px-4 text-sm font-medium text-[var(--contraste-destaque)] shadow-suave transition-colors hover:bg-[var(--destaque-forte)]"
+              className="shadow-suave inline-flex h-10 items-center gap-2 rounded-md bg-[var(--destaque)] px-4 text-sm font-medium text-[var(--contraste-destaque)] transition-colors hover:bg-[var(--destaque-forte)]"
             >
               <Palette aria-hidden="true" className="size-4" />
               Ver o design system

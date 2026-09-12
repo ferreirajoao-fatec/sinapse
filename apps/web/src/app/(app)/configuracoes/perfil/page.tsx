@@ -28,9 +28,7 @@ export default function PaginaDePerfil() {
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="font-serif text-3xl tracking-tight">Meu perfil</h1>
-        <p className="text-sm text-[var(--texto-suave)]">
-          Dados da conta, senha e privacidade.
-        </p>
+        <p className="text-sm text-[var(--texto-suave)]">Dados da conta, senha e privacidade.</p>
       </div>
 
       <AvisoDeVerificacao />
@@ -50,7 +48,8 @@ export default function PaginaDePerfil() {
           descricao="Espaco usado pelos seus arquivos"
           acao={
             <Badge>
-              {formatarBytes(usuario.storageUsedBytes)} de {formatarBytes(usuario.storageQuotaBytes)}
+              {formatarBytes(usuario.storageUsedBytes)} de{' '}
+              {formatarBytes(usuario.storageQuotaBytes)}
             </Badge>
           }
         />
@@ -58,9 +57,7 @@ export default function PaginaDePerfil() {
           <div
             className="h-2 w-full overflow-hidden rounded-full bg-[var(--superficie-suave)]"
             role="progressbar"
-            aria-valuenow={Math.round(
-              (usuario.storageUsedBytes / usuario.storageQuotaBytes) * 100,
-            )}
+            aria-valuenow={Math.round((usuario.storageUsedBytes / usuario.storageQuotaBytes) * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Uso do armazenamento"
@@ -205,8 +202,8 @@ function SecaoSenha({ temSenha }: { temSenha: boolean }) {
         <CardHeader titulo="Senha" descricao="Sua conta usa o login com Google" />
         <CardContent>
           <Alert tipo="informacao" titulo="Voce ainda nao definiu uma senha">
-            Use a opcao &quot;Esqueci minha senha&quot; na tela de login para criar a primeira. Depois
-            voce podera entrar das duas formas.
+            Use a opcao &quot;Esqueci minha senha&quot; na tela de login para criar a primeira.
+            Depois voce podera entrar das duas formas.
           </Alert>
         </CardContent>
       </Card>

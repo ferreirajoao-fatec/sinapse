@@ -26,7 +26,7 @@ export class GoogleService {
   get habilitado(): boolean {
     return Boolean(
       this.config.get<string>('GOOGLE_CLIENT_ID') &&
-        this.config.get<string>('GOOGLE_CLIENT_SECRET'),
+      this.config.get<string>('GOOGLE_CLIENT_SECRET'),
     );
   }
 

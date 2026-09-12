@@ -42,7 +42,10 @@ export function Trilha({ degraus }: { degraus?: Degrau[] }) {
     <nav aria-label="Trilha de navegacao">
       <ol className="flex flex-wrap items-center gap-1 text-sm text-[var(--texto-suave)]">
         <li>
-          <Link href="/" className="underline-offset-4 transition-colors hover:text-[var(--texto)] hover:underline">
+          <Link
+            href="/"
+            className="underline-offset-4 transition-colors hover:text-[var(--texto)] hover:underline"
+          >
             Inicio
           </Link>
         </li>

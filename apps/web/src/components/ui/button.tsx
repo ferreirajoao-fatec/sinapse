@@ -12,7 +12,8 @@ const variantes: Record<Variante, string> = {
     'bg-[var(--destaque)] text-[var(--contraste-destaque)] hover:bg-[var(--destaque-forte)] shadow-suave',
   secundario:
     'bg-[var(--superficie)] text-[var(--texto)] border border-[var(--borda)] hover:bg-[var(--superficie-suave)] hover:border-[var(--borda-forte)]',
-  discreto: 'text-[var(--texto-suave)] hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]',
+  discreto:
+    'text-[var(--texto-suave)] hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)]',
   perigo: 'bg-perigo-500 text-white hover:bg-perigo-700 shadow-suave',
   link: 'text-[var(--destaque)] underline-offset-4 hover:underline p-0 h-auto',
 };
@@ -35,7 +36,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * O estado de carregamento desabilita o clique e anuncia a mudanca por aria-busy.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variante = 'primario', tamanho = 'md', carregando = false, disabled, children, ...props },
+  {
+    className,
+    variante = 'primario',
+    tamanho = 'md',
+    carregando = false,
+    disabled,
+    children,
+    ...props
+  },
   ref,
 ) {
   return (

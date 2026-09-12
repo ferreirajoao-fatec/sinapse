@@ -17,7 +17,7 @@ export function IndicadorDeSalvamento({
   caracteres: number;
 }) {
   return (
-    <div className="flex items-center gap-3 text-2xs text-[var(--texto-tenue)]">
+    <div className="text-2xs flex items-center gap-3 text-[var(--texto-tenue)]">
       <span aria-live="polite" className="flex min-w-24 items-center gap-1.5">
         {estado === 'salvando' ? (
           <>

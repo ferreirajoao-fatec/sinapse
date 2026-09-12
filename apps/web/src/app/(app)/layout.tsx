@@ -43,7 +43,7 @@ export default function LayoutDoAplicativo({ children }: { children: ReactNode }
       <Gaveta />
 
       <div className={cn('transition-[padding]', recolhida ? 'lg:pl-16' : 'lg:pl-64')}>
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-[var(--fundo)]/85 px-4 backdrop-blur lg:hidden">
+        <header className="bg-[var(--fundo)]/85 sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 backdrop-blur lg:hidden">
           <button
             type="button"
             onClick={abrirGaveta}
@@ -63,15 +63,17 @@ export default function LayoutDoAplicativo({ children }: { children: ReactNode }
           >
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-5">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-              <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path
+                d="m20 20-3.5-3.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </header>
 
-        <main
-          id="conteudo"
-          className="mx-auto max-w-4xl px-5 py-6 pb-24 sm:px-8 sm:pb-10 lg:py-8"
-        >
+        <main id="conteudo" className="mx-auto max-w-4xl px-5 py-6 pb-24 sm:px-8 sm:pb-10 lg:py-8">
           {carregando ? (
             <div className="space-y-4">
               <Skeleton className="h-4 w-40" />

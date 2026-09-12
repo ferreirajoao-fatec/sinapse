@@ -79,7 +79,7 @@ export function MenuSuspenso({
         <div
           role="menu"
           className={cn(
-            'animate-surgir superficie absolute top-full z-50 mt-1 w-56 overflow-hidden p-1 shadow-elevada',
+            'animate-surgir superficie shadow-elevada absolute top-full z-50 mt-1 w-56 overflow-hidden p-1',
             alinhamento === 'direita' ? 'right-0' : 'left-0',
           )}
         >

@@ -51,7 +51,7 @@ export function ConteudoDaBarra({ recolhida }: { recolhida: boolean }) {
           {!recolhida ? (
             <>
               <span className="flex-1 text-left">Buscar</span>
-              <kbd className="rounded-sm border bg-[var(--superficie-suave)] px-1.5 py-0.5 font-mono text-2xs">
+              <kbd className="text-2xs rounded-sm border bg-[var(--superficie-suave)] px-1.5 py-0.5 font-mono">
                 {teclaModificadora} K
               </kbd>
             </>
@@ -73,7 +73,7 @@ export function ConteudoDaBarra({ recolhida }: { recolhida: boolean }) {
 
         {!recolhida ? (
           <div className="space-y-2 pt-6">
-            <p className="px-2.5 text-2xs font-medium tracking-wide text-[var(--texto-tenue)] uppercase">
+            <p className="text-2xs px-2.5 font-medium uppercase tracking-wide text-[var(--texto-tenue)]">
               Meus conteudos
             </p>
             <ArvoreDeConteudos />
@@ -120,7 +120,7 @@ export function BarraLateral() {
         onClick={alternarRecolhida}
         aria-label={recolhida ? 'Expandir a barra lateral' : 'Recolher a barra lateral'}
         title={`${recolhida ? 'Expandir' : 'Recolher'} (${teclaModificadora} B)`}
-        className="absolute top-4 -right-3 flex size-6 cursor-pointer items-center justify-center rounded-full border bg-[var(--superficie)] text-[var(--texto-tenue)] shadow-suave transition-colors hover:text-[var(--texto)]"
+        className="shadow-suave absolute -right-3 top-4 flex size-6 cursor-pointer items-center justify-center rounded-full border bg-[var(--superficie)] text-[var(--texto-tenue)] transition-colors hover:text-[var(--texto)]"
       >
         {recolhida ? (
           <PanelLeftOpen aria-hidden="true" className="size-3.5" />

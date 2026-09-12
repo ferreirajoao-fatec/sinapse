@@ -40,7 +40,7 @@ export function Interruptor({
         <span
           aria-hidden="true"
           className={cn(
-            'absolute top-1 size-4 rounded-full bg-white shadow-suave transition-all',
+            'shadow-suave absolute top-1 size-4 rounded-full bg-white transition-all',
             ligado ? 'left-6' : 'left-1',
           )}
         />

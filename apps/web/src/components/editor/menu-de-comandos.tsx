@@ -49,9 +49,7 @@ export const MenuDeComandos = forwardRef<
       }
 
       if (evento.key === 'ArrowUp') {
-        setSelecionado(
-          (atual) => (atual - 1 + filtrados.length) % Math.max(filtrados.length, 1),
-        );
+        setSelecionado((atual) => (atual - 1 + filtrados.length) % Math.max(filtrados.length, 1));
         return true;
       }
 
@@ -69,7 +67,7 @@ export const MenuDeComandos = forwardRef<
 
   if (filtrados.length === 0) {
     return (
-      <div className="superficie w-72 px-4 py-3 text-sm text-[var(--texto-suave)] shadow-elevada">
+      <div className="superficie shadow-elevada w-72 px-4 py-3 text-sm text-[var(--texto-suave)]">
         Nenhum comando para <span className="font-medium text-[var(--texto)]">{termo}</span>.
       </div>
     );
@@ -82,7 +80,7 @@ export const MenuDeComandos = forwardRef<
       ref={lista}
       role="listbox"
       aria-label="Comandos do editor"
-      className="superficie max-h-80 w-72 overflow-y-auto p-1 shadow-elevada"
+      className="superficie shadow-elevada max-h-80 w-72 overflow-y-auto p-1"
     >
       {filtrados.map((comando, indice) => {
         const novoGrupo = comando.grupo !== grupoAnterior;
@@ -91,7 +89,7 @@ export const MenuDeComandos = forwardRef<
         return (
           <div key={comando.id}>
             {novoGrupo ? (
-              <p className="px-3 pt-2.5 pb-1 text-2xs font-medium tracking-wide text-[var(--texto-tenue)] uppercase">
+              <p className="text-2xs px-3 pb-1 pt-2.5 font-medium uppercase tracking-wide text-[var(--texto-tenue)]">
                 {comando.grupo}
               </p>
             ) : null}
@@ -113,7 +111,7 @@ export const MenuDeComandos = forwardRef<
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{comando.rotulo}</span>
-                <span className="block truncate text-2xs text-[var(--texto-suave)]">
+                <span className="text-2xs block truncate text-[var(--texto-suave)]">
                   {comando.descricao}
                 </span>
               </span>

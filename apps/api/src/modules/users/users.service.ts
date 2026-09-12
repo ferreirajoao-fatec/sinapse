@@ -73,7 +73,8 @@ export class UsersService {
     userId: string,
     dados: AtualizarPreferenciasInput,
   ): Promise<UsuarioPublico> {
-    const locale = dados.locale === 'en-US' ? 'en_US' : dados.locale === 'pt-BR' ? 'pt_BR' : undefined;
+    const locale =
+      dados.locale === 'en-US' ? 'en_US' : dados.locale === 'pt-BR' ? 'pt_BR' : undefined;
 
     await this.prisma.userPreferences.upsert({
       where: { userId },

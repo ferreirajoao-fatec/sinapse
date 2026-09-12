@@ -15,7 +15,11 @@ export function SeletorDeIcone({
     <div className="space-y-1.5">
       <span className="block text-sm font-medium">Icone</span>
 
-      <div role="radiogroup" aria-label="Icone" className="flex flex-wrap gap-1 rounded-md border p-2">
+      <div
+        role="radiogroup"
+        aria-label="Icone"
+        className="flex flex-wrap gap-1 rounded-md border p-2"
+      >
         <button
           type="button"
           role="radio"

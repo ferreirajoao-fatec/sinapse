@@ -27,7 +27,7 @@ export function DialogoDeAtalhos() {
 
           return (
             <section key={grupo} className="space-y-2">
-              <h3 className="text-2xs font-medium tracking-wide text-[var(--texto-tenue)] uppercase">
+              <h3 className="text-2xs font-medium uppercase tracking-wide text-[var(--texto-tenue)]">
                 {grupo}
               </h3>
 
@@ -39,7 +39,7 @@ export function DialogoDeAtalhos() {
                       {atalho.teclas.map((tecla) => (
                         <kbd
                           key={tecla}
-                          className="min-w-6 rounded-sm border bg-[var(--superficie-suave)] px-1.5 py-0.5 text-center font-mono text-2xs"
+                          className="text-2xs min-w-6 rounded-sm border bg-[var(--superficie-suave)] px-1.5 py-0.5 text-center font-mono"
                         >
                           {formatarTecla(tecla, ehMac)}
                         </kbd>

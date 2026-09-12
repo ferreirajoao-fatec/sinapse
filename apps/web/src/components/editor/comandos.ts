@@ -43,8 +43,7 @@ export const COMANDOS: ComandoDoEditor[] = [
     Icone: Type,
     grupo: 'Texto',
     termos: ['paragrafo', 'p'],
-    executar: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).setParagraph().run(),
+    executar: ({ editor, range }) => editor.chain().focus().deleteRange(range).setParagraph().run(),
   },
   {
     id: 'titulo1',

@@ -48,9 +48,7 @@ function Formulario() {
       router.replace('/');
       router.refresh();
     } catch (falha) {
-      setErroGeral(
-        falha instanceof ApiError ? falha.message : 'Nao foi possivel alterar a senha.',
-      );
+      setErroGeral(falha instanceof ApiError ? falha.message : 'Nao foi possivel alterar a senha.');
       setEnviando(false);
     }
   }

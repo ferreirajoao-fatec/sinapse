@@ -50,7 +50,9 @@ export function EstadoDaApi() {
             onClick={() => void verificar()}
             carregando={estado.situacao === 'carregando'}
           >
-            {estado.situacao !== 'carregando' && <RefreshCw aria-hidden="true" className="size-3.5" />}
+            {estado.situacao !== 'carregando' && (
+              <RefreshCw aria-hidden="true" className="size-3.5" />
+            )}
             Verificar
           </Button>
         }

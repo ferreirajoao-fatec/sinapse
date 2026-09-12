@@ -60,8 +60,8 @@ export function CampoSenha({
           aria-invalid={Boolean(erro)}
           aria-describedby={cn(auxilio && idAuxilio, erro && idErro) || undefined}
           className={cn(
-            'h-10 w-full rounded-md border bg-[var(--superficie)] pr-10 pl-3 text-sm',
-            'placeholder:text-[var(--texto-tenue)] transition-colors focus:border-[var(--destaque)]',
+            'h-10 w-full rounded-md border bg-[var(--superficie)] pl-3 pr-10 text-sm',
+            'transition-colors placeholder:text-[var(--texto-tenue)] focus:border-[var(--destaque)]',
             erro && 'border-perigo-500',
           )}
         />
@@ -70,7 +70,7 @@ export function CampoSenha({
           type="button"
           onClick={() => setVisivel((atual) => !atual)}
           aria-label={visivel ? 'Ocultar senha' : 'Mostrar senha'}
-          className="absolute top-0 right-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:text-[var(--texto)]"
+          className="absolute right-0 top-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-[var(--texto-tenue)] transition-colors hover:text-[var(--texto)]"
         >
           {visivel ? (
             <EyeOff aria-hidden="true" className="size-4" />

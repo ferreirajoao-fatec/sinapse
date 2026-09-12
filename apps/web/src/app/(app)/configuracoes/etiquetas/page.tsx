@@ -119,7 +119,10 @@ export default function PaginaDeEtiquetas() {
               {etiquetas.map((etiqueta) => (
                 <li key={etiqueta.id} className="flex items-center gap-3 py-2.5 first:pt-0">
                   <span
-                    className={cn('size-3 shrink-0 rounded-full', corDeConteudo(etiqueta.color).ponto)}
+                    className={cn(
+                      'size-3 shrink-0 rounded-full',
+                      corDeConteudo(etiqueta.color).ponto,
+                    )}
                     aria-hidden="true"
                   />
                   <span className="min-w-0 flex-1 truncate text-sm">{etiqueta.name}</span>

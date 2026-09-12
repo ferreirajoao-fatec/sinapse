@@ -54,9 +54,7 @@ export default function PaginaDeCadastro() {
       if (erro instanceof ApiError && erro.statusCode === 409) {
         setErros({ email: 'Ja existe uma conta com este e-mail.' });
       } else {
-        setErroGeral(
-          erro instanceof ApiError ? erro.message : 'Nao foi possivel criar a conta.',
-        );
+        setErroGeral(erro instanceof ApiError ? erro.message : 'Nao foi possivel criar a conta.');
       }
       setEnviando(false);
     }

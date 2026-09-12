@@ -14,7 +14,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     super({
       log:
         process.env.NODE_ENV === 'development'
-          ? [{ emit: 'stdout', level: 'warn' }, { emit: 'stdout', level: 'error' }]
+          ? [
+              { emit: 'stdout', level: 'warn' },
+              { emit: 'stdout', level: 'error' },
+            ]
           : [{ emit: 'stdout', level: 'error' }],
     });
   }
@@ -42,7 +45,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * Executa um SELECT 1 e devolve a latencia em milissegundos.
    * Usado pelo endpoint de saude para provar que o banco responde.
    */
-  async checkConnection(): Promise<{ connected: boolean; latencyMs: number | null; error: string | null }> {
+  async checkConnection(): Promise<{
+    connected: boolean;
+    latencyMs: number | null;
+    error: string | null;
+  }> {
     const inicio = performance.now();
 
     try {

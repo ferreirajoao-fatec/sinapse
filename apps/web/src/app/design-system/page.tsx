@@ -65,7 +65,7 @@ export default function PaginaDesignSystem() {
                 />
                 <div className="space-y-0.5 p-3">
                   <p className="text-sm font-medium">{cor.nome}</p>
-                  <p className="font-mono text-2xs text-[var(--texto-tenue)]">{cor.hex}</p>
+                  <p className="text-2xs font-mono text-[var(--texto-tenue)]">{cor.hex}</p>
                   <p className="text-2xs text-[var(--texto-suave)]">{cor.uso}</p>
                 </div>
               </div>
@@ -73,7 +73,10 @@ export default function PaginaDesignSystem() {
           </div>
         </Secao>
 
-        <Secao titulo="Tipografia" descricao="Serifada na marca e nos titulos, sem serifa na interface">
+        <Secao
+          titulo="Tipografia"
+          descricao="Serifada na marca e nos titulos, sem serifa na interface"
+        >
           <div className="superficie space-y-4 p-6">
             <p className="font-serif text-4xl tracking-tight">Instrument Serif 40</p>
             <p className="text-2xl font-medium">Inter Medium 24</p>
@@ -223,7 +226,7 @@ export default function PaginaDesignSystem() {
                   style={{ width: passo * 4, height: passo * 4 }}
                   aria-hidden="true"
                 />
-                <span className="font-mono text-2xs text-[var(--texto-tenue)]">{passo * 4}</span>
+                <span className="text-2xs font-mono text-[var(--texto-tenue)]">{passo * 4}</span>
               </div>
             ))}
           </div>

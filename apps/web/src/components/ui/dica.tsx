@@ -41,15 +41,15 @@ export function Dica({
         role="tooltip"
         aria-hidden={!visivel}
         className={cn(
-          'pointer-events-none absolute top-1/2 left-[calc(100%+0.5rem)] z-50 -translate-y-1/2',
+          'pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 -translate-y-1/2',
           'flex items-center gap-2 rounded-md border bg-[var(--superficie)] px-2.5 py-1.5',
-          'text-xs whitespace-nowrap shadow-elevada transition-opacity',
+          'shadow-elevada whitespace-nowrap text-xs transition-opacity',
           visivel ? 'opacity-100' : 'opacity-0',
         )}
       >
         {texto}
         {atalho ? (
-          <kbd className="rounded-sm border bg-[var(--superficie-suave)] px-1 font-mono text-2xs text-[var(--texto-suave)]">
+          <kbd className="text-2xs rounded-sm border bg-[var(--superficie-suave)] px-1 font-mono text-[var(--texto-suave)]">
             {atalho}
           </kbd>
         ) : null}

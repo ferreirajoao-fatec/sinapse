@@ -76,7 +76,11 @@ function blocoInformativo(texto: string, tom: 'informacao' | 'atencao' | 'sucess
 }
 
 function blocoDeCodigo(codigo: string, language: string) {
-  return { type: 'codeBlock', attrs: { language }, content: [{ type: 'text' as const, text: codigo }] };
+  return {
+    type: 'codeBlock',
+    attrs: { language },
+    content: [{ type: 'text' as const, text: codigo }],
+  };
 }
 
 /** Monta um documento ProseMirror simples a partir de paragrafos de texto. */
@@ -255,10 +259,7 @@ async function main() {
       isPinned: true,
       position: 1,
       tags: {
-        create: [
-          { tagId: tagByName.get('importante')! },
-          { tagId: tagByName.get('revisar')! },
-        ],
+        create: [{ tagId: tagByName.get('importante')! }, { tagId: tagByName.get('revisar')! }],
       },
     },
   });
@@ -343,7 +344,13 @@ async function main() {
   // Grupo 2: Estudos pessoais
   // ---------------------------------------------------------------------------
   const pessoais = await prisma.group.create({
-    data: { userId: user.id, name: 'Estudos pessoais', icon: 'sparkles', color: 'teal', position: 1 },
+    data: {
+      userId: user.id,
+      name: 'Estudos pessoais',
+      icon: 'sparkles',
+      color: 'teal',
+      position: 1,
+    },
   });
 
   const ingles = await prisma.section.create({
@@ -430,7 +437,13 @@ async function main() {
   });
 
   const turmas = await prisma.group.create({
-    data: { userId: professor.id, name: 'Turmas 2026', icon: 'users', color: 'violet', position: 0 },
+    data: {
+      userId: professor.id,
+      name: 'Turmas 2026',
+      icon: 'users',
+      color: 'violet',
+      position: 0,
+    },
   });
 
   const turmaA = await prisma.section.create({

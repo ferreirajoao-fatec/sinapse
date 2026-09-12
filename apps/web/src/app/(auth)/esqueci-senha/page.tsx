@@ -49,8 +49,8 @@ export default function PaginaEsqueciSenha() {
         <div className="space-y-2">
           <h1 className="font-serif text-2xl tracking-tight">Confira sua caixa de entrada</h1>
           <p className="text-sm text-[var(--texto-suave)]">
-            Se houver uma conta com <span className="font-medium text-[var(--texto)]">{email}</span>,
-            enviamos um link para criar uma nova senha. Ele vale por 30 minutos.
+            Se houver uma conta com <span className="font-medium text-[var(--texto)]">{email}</span>
+            , enviamos um link para criar uma nova senha. Ele vale por 30 minutos.
           </p>
         </div>
 

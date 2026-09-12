@@ -23,14 +23,8 @@ const TEMAS: { valor: Theme; rotulo: string; descricao: string; Icone: LucideIco
 const ESCALAS = [90, 100, 110, 125, 150];
 
 export default function PaginaDeAparencia() {
-  const {
-    tema,
-    escala,
-    movimentoReduzido,
-    definirTema,
-    definirEscala,
-    definirMovimentoReduzido,
-  } = usarPreferencias();
+  const { tema, escala, movimentoReduzido, definirTema, definirEscala, definirMovimentoReduzido } =
+    usarPreferencias();
 
   const { abrirAjuda } = usarNavegacao();
 
@@ -46,11 +40,7 @@ export default function PaginaDeAparencia() {
       <Card>
         <CardHeader titulo="Tema" descricao="Como o sistema se apresenta" />
         <CardContent>
-          <div
-            role="radiogroup"
-            aria-label="Tema"
-            className="grid gap-3 sm:grid-cols-3"
-          >
+          <div role="radiogroup" aria-label="Tema" className="grid gap-3 sm:grid-cols-3">
             {TEMAS.map(({ valor, rotulo, descricao, Icone }) => {
               const ativo = tema === valor;
 

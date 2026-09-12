@@ -59,9 +59,7 @@ function Formulario() {
     <div className="space-y-6">
       <div className="space-y-1.5">
         <h1 className="font-serif text-3xl tracking-tight">Que bom te ver</h1>
-        <p className="text-sm text-[var(--texto-suave)]">
-          Entre para continuar de onde parou.
-        </p>
+        <p className="text-sm text-[var(--texto-suave)]">Entre para continuar de onde parou.</p>
       </div>
 
       {contaCriada ? (

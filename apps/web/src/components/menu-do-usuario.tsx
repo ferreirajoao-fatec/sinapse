@@ -77,7 +77,9 @@ export function MenuDoUsuario({ compacto = false }: { compacto?: boolean }) {
         title={compacto ? usuario.name : undefined}
         className={cn(
           'flex cursor-pointer items-center gap-2.5 rounded-md transition-colors',
-          compacto ? 'size-9 justify-center' : 'w-full px-1.5 py-1.5 hover:bg-[var(--superficie-suave)]',
+          compacto
+            ? 'size-9 justify-center'
+            : 'w-full px-1.5 py-1.5 hover:bg-[var(--superficie-suave)]',
           aberto && !compacto && 'bg-[var(--superficie-suave)]',
         )}
       >
@@ -86,7 +88,7 @@ export function MenuDoUsuario({ compacto = false }: { compacto?: boolean }) {
         {!compacto ? (
           <span className="min-w-0 flex-1 text-left">
             <span className="block truncate text-sm font-medium">{usuario.name}</span>
-            <span className="block truncate text-2xs text-[var(--texto-suave)]">
+            <span className="text-2xs block truncate text-[var(--texto-suave)]">
               {usuario.email}
             </span>
           </span>
@@ -97,7 +99,7 @@ export function MenuDoUsuario({ compacto = false }: { compacto?: boolean }) {
         <div
           role="menu"
           className={cn(
-            'animate-surgir superficie absolute z-50 w-60 overflow-hidden shadow-elevada',
+            'animate-surgir superficie shadow-elevada absolute z-50 w-60 overflow-hidden',
             compacto ? 'bottom-0 left-[calc(100%+0.5rem)]' : 'bottom-[calc(100%+0.5rem)] left-0',
           )}
         >

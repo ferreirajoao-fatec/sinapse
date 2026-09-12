@@ -174,7 +174,7 @@ function ListaDePaginas({
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{pagina.title}</span>
-                      <span className="block truncate text-2xs text-[var(--texto-tenue)]">
+                      <span className="text-2xs block truncate text-[var(--texto-tenue)]">
                         {pagina.caminho.grupo} / {pagina.caminho.secao}
                       </span>
                     </span>

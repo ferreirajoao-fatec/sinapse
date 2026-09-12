@@ -6,7 +6,8 @@ type Tipo = 'informacao' | 'sucesso' | 'atencao' | 'erro';
 
 const estilos: Record<Tipo, { caixa: string; icone: ReactNode }> = {
   informacao: {
-    caixa: 'bg-marca-50 text-marca-700 dark:bg-marca-900 dark:text-marca-100 border-marca-200 dark:border-marca-700',
+    caixa:
+      'bg-marca-50 text-marca-700 dark:bg-marca-900 dark:text-marca-100 border-marca-200 dark:border-marca-700',
     icone: <Info aria-hidden="true" className="size-4 shrink-0" />,
   },
   sucesso: {
@@ -40,7 +41,11 @@ export function Alert({
   return (
     <div
       role={tipo === 'erro' ? 'alert' : 'status'}
-      className={cn('flex gap-3 rounded-md border px-4 py-3 text-sm', estilos[tipo].caixa, className)}
+      className={cn(
+        'flex gap-3 rounded-md border px-4 py-3 text-sm',
+        estilos[tipo].caixa,
+        className,
+      )}
     >
       <span className="mt-0.5">{estilos[tipo].icone}</span>
       <div className="space-y-0.5">

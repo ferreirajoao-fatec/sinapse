@@ -22,7 +22,9 @@ export function AlternarTema() {
   useEffect(() => setMontado(true), []);
 
   if (!montado) {
-    return <div className="h-9 w-[122px] rounded-md bg-[var(--superficie-suave)]" aria-hidden="true" />;
+    return (
+      <div className="h-9 w-[122px] rounded-md bg-[var(--superficie-suave)]" aria-hidden="true" />
+    );
   }
 
   return (

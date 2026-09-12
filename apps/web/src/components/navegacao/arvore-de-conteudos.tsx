@@ -114,10 +114,11 @@ export function ArvoreDeConteudos({ compacta = false }: { compacta?: boolean }) 
           onClick={() => setCriandoGrupo(true)}
           className="w-full cursor-pointer rounded-md border border-dashed px-3 py-4 text-center transition-colors hover:border-[var(--borda-forte)]"
         >
-          <FolderPlus aria-hidden="true" className="mx-auto mb-1.5 size-4 text-[var(--texto-tenue)]" />
-          <span className="block text-xs text-[var(--texto-suave)]">
-            Crie seu primeiro grupo
-          </span>
+          <FolderPlus
+            aria-hidden="true"
+            className="mx-auto mb-1.5 size-4 text-[var(--texto-tenue)]"
+          />
+          <span className="block text-xs text-[var(--texto-suave)]">Crie seu primeiro grupo</span>
         </button>
 
         <DialogoDeGrupo aberto={criandoGrupo} aoFechar={() => setCriandoGrupo(false)} />
@@ -194,7 +195,9 @@ function NoDeGrupo({ grupo, compacta }: { grupo: GrupoNaArvore; compacta: boolea
     );
 
     try {
-      await reordenarSecoes(novasSecoes.map((secao, indice) => ({ id: secao.id, position: indice })));
+      await reordenarSecoes(
+        novasSecoes.map((secao, indice) => ({ id: secao.id, position: indice })),
+      );
     } catch {
       await recarregar();
     }
@@ -214,7 +217,7 @@ function NoDeGrupo({ grupo, compacta }: { grupo: GrupoNaArvore; compacta: boolea
           {...attributes}
           {...listeners}
           aria-label={`Reordenar o grupo ${grupo.name}`}
-          className="flex size-5 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+          className="flex size-5 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
         >
           <GripVertical aria-hidden="true" className="size-3.5" />
         </button>
@@ -236,7 +239,7 @@ function NoDeGrupo({ grupo, compacta }: { grupo: GrupoNaArvore; compacta: boolea
           <Icone aria-hidden="true" className="size-3.5 shrink-0 text-[var(--texto-suave)]" />
           <span className="truncate text-sm font-medium">{grupo.name}</span>
           {!aberto && totalDePaginas > 0 ? (
-            <span className="shrink-0 text-2xs text-[var(--texto-tenue)]">{totalDePaginas}</span>
+            <span className="text-2xs shrink-0 text-[var(--texto-tenue)]">{totalDePaginas}</span>
           ) : null}
         </button>
 
@@ -259,7 +262,12 @@ function NoDeGrupo({ grupo, compacta }: { grupo: GrupoNaArvore; compacta: boolea
               Icone: Plus,
               aoEscolher: () => setCriandoSecao(true),
             },
-            { id: 'editar', rotulo: 'Editar grupo', Icone: Pencil, aoEscolher: () => setEditando(true) },
+            {
+              id: 'editar',
+              rotulo: 'Editar grupo',
+              Icone: Pencil,
+              aoEscolher: () => setEditando(true),
+            },
             {
               id: 'excluir',
               rotulo: 'Mover para a lixeira',
@@ -416,7 +424,7 @@ function NoDeSecao({
           {...attributes}
           {...listeners}
           aria-label={`Reordenar a secao ${secao.name}`}
-          className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+          className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
         >
           <GripVertical aria-hidden="true" className="size-3" />
         </button>
@@ -457,7 +465,12 @@ function NoDeSecao({
               Icone: FilePlus2,
               aoEscolher: () => void novaPagina(),
             },
-            { id: 'editar', rotulo: 'Editar secao', Icone: Pencil, aoEscolher: () => setEditando(true) },
+            {
+              id: 'editar',
+              rotulo: 'Editar secao',
+              Icone: Pencil,
+              aoEscolher: () => setEditando(true),
+            },
             {
               id: 'excluir',
               rotulo: 'Mover para a lixeira',
@@ -606,7 +619,7 @@ function NoDePagina({
           {...attributes}
           {...listeners}
           aria-label={`Reordenar a pagina ${pagina.title}`}
-          className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+          className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
         >
           <GripVertical aria-hidden="true" className="size-3" />
         </button>
@@ -649,10 +662,7 @@ function NoDePagina({
             {pagina.title}
           </span>
           {pagina.isFavorite ? (
-            <Star
-              aria-label="Favorita"
-              className="text-atencao-500 size-3 shrink-0 fill-current"
-            />
+            <Star aria-label="Favorita" className="text-atencao-500 size-3 shrink-0 fill-current" />
           ) : null}
         </Link>
 

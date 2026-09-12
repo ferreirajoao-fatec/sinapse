@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
@@ -164,9 +154,7 @@ export class AuthController {
   @Throttle({ padrao: { limit: 3, ttl: 300_000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Envia o link de redefinicao de senha' })
-  async esqueciSenha(
-    @Body(new ValidacaoZod(forgotPasswordSchema)) dados: ForgotPasswordInput,
-  ) {
+  async esqueciSenha(@Body(new ValidacaoZod(forgotPasswordSchema)) dados: ForgotPasswordInput) {
     await this.auth.solicitarRedefinicao(dados);
     return RESPOSTA_NEUTRA;
   }
