@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'node:path';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env.validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 import { HealthModule } from './modules/health/health.module';
 import { MailModule } from './modules/mail/mail.module';
 import { NotesModule } from './modules/notes/notes.module';
@@ -24,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     }),
     ThrottlerModule.forRoot([{ name: 'padrao', ttl: 60_000, limit: 120 }]),
     JwtModule.register({ global: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     MailModule,
     HealthModule,
@@ -31,6 +34,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     NotesModule,
     TasksModule,
+    CalendarModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

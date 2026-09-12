@@ -8,7 +8,7 @@ import {
   type TarefaCompleta,
   type TaskPriority,
 } from '@sinapse/shared';
-import { Check, FileText, Paperclip, Trash2, X } from 'lucide-react';
+import { CalendarDays, Check, FileText, Paperclip, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { usarArvore } from '@/hooks/usar-arvore';
 import { ApiError } from '@/lib/api';
 import { formatarBytes } from '@/lib/anexos';
+import { listarOcorrencias } from '@/lib/calendario';
+import { formatarDataCurta } from '@/lib/calendario-formatacao';
 import { cn } from '@/lib/utils';
 import { DialogoDeConfirmacao } from './dialogo-de-confirmacao';
 import {
@@ -73,6 +75,12 @@ function paraDataDoCampo(iso: string | null): string {
   return iso ? iso.slice(0, 10) : '';
 }
 
+interface EventoAchatado {
+  id: string;
+  title: string;
+  startAt: string;
+}
+
 export function DialogoDeTarefa({
   aberto,
   aoFechar,
@@ -101,6 +109,9 @@ export function DialogoDeTarefa({
   const [prazo, setPrazo] = useState('');
   const [paginaSelecionada, setPaginaSelecionada] = useState<PaginaAchatada | null>(null);
   const [buscaPagina, setBuscaPagina] = useState('');
+  const [eventos, setEventos] = useState<EventoAchatado[]>([]);
+  const [eventoSelecionado, setEventoSelecionado] = useState<EventoAchatado | null>(null);
+  const [buscaEvento, setBuscaEvento] = useState('');
 
   const [novoItemChecklist, setNovoItemChecklist] = useState('');
   const [enviandoArquivo, setEnviandoArquivo] = useState(false);
@@ -122,8 +133,35 @@ export function DialogoDeTarefa({
   useEffect(() => {
     if (!aberto) return;
 
+    // Janela ampla o bastante para achar eventos passados recentes e futuros.
+    const de = new Date();
+    de.setFullYear(de.getFullYear() - 1);
+    const ate = new Date();
+    ate.setFullYear(ate.getFullYear() + 2);
+
+    listarOcorrencias(de, ate, true)
+      .then((ocorrencias) => {
+        const unicos = new Map<string, EventoAchatado>();
+        for (const ocorrencia of ocorrencias) {
+          if (!unicos.has(ocorrencia.eventId)) {
+            unicos.set(ocorrencia.eventId, {
+              id: ocorrencia.eventId,
+              title: ocorrencia.title,
+              startAt: ocorrencia.inicio,
+            });
+          }
+        }
+        setEventos([...unicos.values()]);
+      })
+      .catch(() => setEventos([]));
+  }, [aberto]);
+
+  useEffect(() => {
+    if (!aberto) return;
+
     setErro(null);
     setBuscaPagina('');
+    setBuscaEvento('');
 
     if (!tarefaId) {
       setTarefa(null);
@@ -132,6 +170,7 @@ export function DialogoDeTarefa({
       setPrioridade('medium');
       setPrazo('');
       setPaginaSelecionada(null);
+      setEventoSelecionado(null);
       return;
     }
 
@@ -148,6 +187,7 @@ export function DialogoDeTarefa({
             ? { id: completa.pagina.id, title: completa.pagina.title, caminho: '' }
             : null,
         );
+        setEventoSelecionado(completa.evento);
       })
       .catch((falha) => {
         setErro(falha instanceof ApiError ? falha.message : 'Nao foi possivel carregar a tarefa.');
@@ -161,6 +201,7 @@ export function DialogoDeTarefa({
 
     const dueDate = prazo ? new Date(`${prazo}T00:00:00.000Z`).toISOString() : null;
     const pageId = paginaSelecionada?.id ?? null;
+    const calendarEventId = eventoSelecionado?.id ?? null;
 
     if (tarefa) {
       const validacao = atualizarTarefaSchema.safeParse({
@@ -169,6 +210,7 @@ export function DialogoDeTarefa({
         priority: prioridade,
         dueDate,
         pageId,
+        calendarEventId,
       });
 
       if (!validacao.success) {
@@ -198,6 +240,7 @@ export function DialogoDeTarefa({
       priority: prioridade,
       dueDate,
       pageId,
+      calendarEventId,
     });
 
     if (!validacao.success) {
@@ -333,6 +376,12 @@ export function DialogoDeTarefa({
         .slice(0, 8)
     : [];
 
+  const resultadosDeBuscaDeEventos = buscaEvento.trim()
+    ? eventos
+        .filter((evento) => evento.title.toLowerCase().includes(buscaEvento.trim().toLowerCase()))
+        .slice(0, 8)
+    : [];
+
   return (
     <Dialogo
       aberto={aberto}
@@ -446,6 +495,64 @@ export function DialogoDeTarefa({
                           <span className="truncate text-sm">{pagina.title}</span>
                           <span className="text-2xs truncate text-[var(--texto-tenue)]">
                             {pagina.caminho}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="block text-sm font-medium">Evento vinculado</span>
+            {eventoSelecionado ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <CalendarDays
+                    aria-hidden="true"
+                    className="size-4 shrink-0 text-[var(--texto-tenue)]"
+                  />
+                  <span className="truncate">{eventoSelecionado.title}</span>
+                  <span className="text-2xs shrink-0 text-[var(--texto-tenue)]">
+                    {formatarDataCurta(eventoSelecionado.startAt)}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEventoSelecionado(null)}
+                  aria-label="Remover vinculo com o evento"
+                  className="cursor-pointer text-[var(--texto-tenue)] hover:text-[var(--texto)]"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <input
+                  aria-label="Buscar evento"
+                  value={buscaEvento}
+                  onChange={(evento) => setBuscaEvento(evento.target.value)}
+                  placeholder="Buscar um evento para vincular"
+                  autoComplete="off"
+                  className="h-10 w-full rounded-md border bg-[var(--superficie)] px-3 text-sm transition-colors placeholder:text-[var(--texto-tenue)] focus:border-[var(--destaque)]"
+                />
+                {resultadosDeBuscaDeEventos.length > 0 ? (
+                  <ul className="max-h-40 space-y-0.5 overflow-y-auto rounded-md border p-1">
+                    {resultadosDeBuscaDeEventos.map((evento) => (
+                      <li key={evento.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEventoSelecionado(evento);
+                            setBuscaEvento('');
+                          }}
+                          className="flex w-full cursor-pointer flex-col rounded-md px-2 py-1.5 text-left transition-colors hover:bg-[var(--superficie-suave)]"
+                        >
+                          <span className="truncate text-sm">{evento.title}</span>
+                          <span className="text-2xs truncate text-[var(--texto-tenue)]">
+                            {formatarDataCurta(evento.startAt)}
                           </span>
                         </button>
                       </li>

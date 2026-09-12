@@ -39,6 +39,7 @@ export const criarTarefaSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).default('medium'),
   dueDate: z.string().datetime().nullable().optional(),
   pageId: z.string().uuid().nullable().optional(),
+  calendarEventId: z.string().uuid().nullable().optional(),
 });
 
 export const atualizarTarefaSchema = z.object({
@@ -47,6 +48,7 @@ export const atualizarTarefaSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).optional(),
   dueDate: z.string().datetime().nullable().optional(),
   pageId: z.string().uuid().nullable().optional(),
+  calendarEventId: z.string().uuid().nullable().optional(),
   completed: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
@@ -117,6 +119,12 @@ export interface PaginaVinculada {
   title: string;
 }
 
+export interface EventoVinculado {
+  id: string;
+  title: string;
+  startAt: string;
+}
+
 export interface TarefaResumida {
   id: string;
   columnId: string;
@@ -127,6 +135,7 @@ export interface TarefaResumida {
   archivedAt: string | null;
   position: number;
   pagina: PaginaVinculada | null;
+  evento: EventoVinculado | null;
   totalDeChecklist: number;
   checklistConcluidos: number;
   totalDeAnexos: number;

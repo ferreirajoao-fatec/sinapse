@@ -76,6 +76,23 @@ export function modeloDeRedefinicao(nome: string, url: string): Modelo {
   };
 }
 
+export function modeloDeLembreteDeEvento(
+  nome: string,
+  tituloDoEvento: string,
+  quando: string,
+  url: string,
+): Modelo {
+  return {
+    assunto: `Lembrete: ${tituloDoEvento}`,
+    html: moldura(
+      tituloDoEvento,
+      `Ola, ${nome}. Este e um lembrete do seu evento "${tituloDoEvento}", marcado para ${quando}.`,
+      { texto: 'Ver no calendario', url },
+    ),
+    texto: `Ola, ${nome}. Lembrete: "${tituloDoEvento}" marcado para ${quando}. Veja em: ${url}`,
+  };
+}
+
 export function modeloDeSenhaAlterada(nome: string, url: string): Modelo {
   return {
     assunto: 'Sua senha do Sinapse foi alterada',

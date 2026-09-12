@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  modeloDeLembreteDeEvento,
   modeloDeRedefinicao,
   modeloDeSenhaAlterada,
   modeloDeVerificacao,
@@ -43,6 +44,18 @@ export class MailService {
 
   async enviarAvisoDeSenhaAlterada(para: string, nome: string): Promise<void> {
     await this.enviar(para, modeloDeSenhaAlterada(nome, `${this.origemDaWeb}/login`));
+  }
+
+  async enviarLembreteDeEvento(
+    para: string,
+    nome: string,
+    tituloDoEvento: string,
+    quando: string,
+  ): Promise<void> {
+    await this.enviar(
+      para,
+      modeloDeLembreteDeEvento(nome, tituloDoEvento, quando, `${this.origemDaWeb}/calendario`),
+    );
   }
 
   private async enviar(

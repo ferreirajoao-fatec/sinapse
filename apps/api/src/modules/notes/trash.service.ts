@@ -17,7 +17,7 @@ export class TrashService {
   async listar(userId: string): Promise<ItemDaLixeira[]> {
     const db = this.prisma.paraUsuario(userId);
 
-    const [grupos, secoes, paginas, colunas, tarefas] = await Promise.all([
+    const [grupos, secoes, paginas, colunas, tarefas, eventos] = await Promise.all([
       db.group.findMany({
         where: { deletedAt: { not: null } },
         orderBy: { deletedAt: 'desc' },
@@ -47,6 +47,10 @@ export class TrashService {
         where: { deletedAt: { not: null } },
         orderBy: { deletedAt: 'desc' },
         include: { column: { select: { name: true, deletedAt: true } } },
+      }),
+      db.calendarEvent.findMany({
+        where: { deletedAt: { not: null } },
+        orderBy: { deletedAt: 'desc' },
       }),
     ]);
 
@@ -123,6 +127,18 @@ export class TrashService {
         icone: null,
         excluidoEm: tarefa.deletedAt!.toISOString(),
         contexto: tarefa.column.name,
+        filhos: 0,
+      });
+    }
+
+    for (const evento of eventos) {
+      itens.push({
+        tipo: 'evento',
+        id: evento.id,
+        nome: evento.title,
+        icone: null,
+        excluidoEm: evento.deletedAt!.toISOString(),
+        contexto: null,
         filhos: 0,
       });
     }
@@ -249,25 +265,38 @@ export class TrashService {
       return;
     }
 
-    // tipo === 'tarefa'
-    const tarefa = await db.task.findFirst({
-      where: { id, deletedAt: { not: null } },
-      include: { column: { select: { deletedAt: true } } },
-    });
+    if (tipo === 'tarefa') {
+      const tarefa = await db.task.findFirst({
+        where: { id, deletedAt: { not: null } },
+        include: { column: { select: { deletedAt: true } } },
+      });
 
-    if (!tarefa) {
-      throw new ForbiddenException('Tarefa nao encontrada na lixeira.');
+      if (!tarefa) {
+        throw new ForbiddenException('Tarefa nao encontrada na lixeira.');
+      }
+
+      if (tarefa.column.deletedAt) {
+        throw new ForbiddenException(
+          'A coluna desta tarefa esta na lixeira. Restaure a coluna primeiro.',
+        );
+      }
+
+      await db.task.updateMany({ where: { id }, data: { deletedAt: null } });
+
+      await this.registrar(userId, ActivityEntity.task, id);
+      return;
     }
 
-    if (tarefa.column.deletedAt) {
-      throw new ForbiddenException(
-        'A coluna desta tarefa esta na lixeira. Restaure a coluna primeiro.',
-      );
+    // tipo === 'evento'
+    const evento = await db.calendarEvent.findFirst({ where: { id, deletedAt: { not: null } } });
+
+    if (!evento) {
+      throw new ForbiddenException('Evento nao encontrado na lixeira.');
     }
 
-    await db.task.updateMany({ where: { id }, data: { deletedAt: null } });
+    await db.calendarEvent.updateMany({ where: { id }, data: { deletedAt: null } });
 
-    await this.registrar(userId, ActivityEntity.task, id);
+    await this.registrar(userId, ActivityEntity.calendar_event, id);
   }
 
   /** Exclusao definitiva de um item. A cascata do banco leva os filhos. */
@@ -297,6 +326,8 @@ export class TrashService {
         return db.taskColumn.deleteMany({ where });
       case 'tarefa':
         return db.task.deleteMany({ where });
+      case 'evento':
+        return db.calendarEvent.deleteMany({ where });
     }
   }
 
@@ -309,9 +340,11 @@ export class TrashService {
     const paginas = await db.page.deleteMany({ where: { deletedAt: { not: null } } });
     const colunas = await db.taskColumn.deleteMany({ where: { deletedAt: { not: null } } });
     const tarefas = await db.task.deleteMany({ where: { deletedAt: { not: null } } });
+    const eventos = await db.calendarEvent.deleteMany({ where: { deletedAt: { not: null } } });
 
     return {
-      removidos: grupos.count + secoes.count + paginas.count + colunas.count + tarefas.count,
+      removidos:
+        grupos.count + secoes.count + paginas.count + colunas.count + tarefas.count + eventos.count,
     };
   }
 

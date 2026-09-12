@@ -34,6 +34,7 @@ const CAMINHO_ATE_O_DONO: Record<string, Filtro> = {
   task: (userId) => ({ column: { userId } }),
   taskChecklistItem: (userId) => ({ task: { column: { userId } } }),
   taskAttachment: (userId) => ({ task: { column: { userId } } }),
+  calendarEvent: (userId) => ({ userId }),
 };
 
 /** Operacoes em que o filtro pode ser injetado com seguranca. */

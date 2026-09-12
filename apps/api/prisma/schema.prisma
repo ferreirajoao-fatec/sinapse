@@ -65,6 +65,7 @@ enum ActivityEntity {
   tag
   task_column
   task
+  calendar_event
 }
 
 enum TaskPriority {
@@ -72,6 +73,13 @@ enum TaskPriority {
   medium
   high
   urgent
+}
+
+enum RecurrenceFrequency {
+  none
+  daily
+  weekly
+  monthly
 }
 
 // -----------------------------------------------------------------------------
@@ -91,14 +99,15 @@ model User {
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  preferences  UserPreferences?
-  accounts     Account[]
-  sessions     Session[]
-  groups       Group[]
-  tags         Tag[]
-  taskColumns  TaskColumn[]
-  activityLogs ActivityLog[]
-  tokens       VerificationToken[]
+  preferences    UserPreferences?
+  accounts       Account[]
+  sessions       Session[]
+  groups         Group[]
+  tags           Tag[]
+  taskColumns    TaskColumn[]
+  calendarEvents CalendarEvent[]
+  activityLogs   ActivityLog[]
+  tokens         VerificationToken[]
 
   @@index([deletedAt])
   @@map("users")
@@ -106,16 +115,16 @@ model User {
 
 /// Conta de provedor externo (Google). Um usuario pode ter varias.
 model Account {
-  id                String   @id @default(uuid()) @db.Uuid
-  userId            String   @db.Uuid
-  provider          String   @db.VarChar(40)
-  providerAccountId String   @db.VarChar(255)
-  accessToken       String?  @db.Text
-  refreshToken      String?  @db.Text
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  provider          String    @db.VarChar(40)
+  providerAccountId String    @db.VarChar(255)
+  accessToken       String?   @db.Text
+  refreshToken      String?   @db.Text
   expiresAt         DateTime?
-  scope             String?  @db.VarChar(500)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  scope             String?   @db.VarChar(500)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -161,18 +170,18 @@ model VerificationToken {
 }
 
 model UserPreferences {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @db.Uuid
-  theme           Theme    @default(system)
-  locale          Locale   @default(pt_BR)
-  fontScale       Int      @default(100)
-  reducedMotion   Boolean  @default(false)
-  notifications   Json     @default("{\"email\":true,\"inApp\":true,\"reminders\":true}")
-  dashboardLayout Json     @default("[]")
-  aiEnabled       Boolean  @default(false)
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @unique @db.Uuid
+  theme           Theme     @default(system)
+  locale          Locale    @default(pt_BR)
+  fontScale       Int       @default(100)
+  reducedMotion   Boolean   @default(false)
+  notifications   Json      @default("{\"email\":true,\"inApp\":true,\"reminders\":true}")
+  dashboardLayout Json      @default("[]")
+  aiEnabled       Boolean   @default(false)
   aiConsentAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -233,10 +242,10 @@ model Page {
   /// Texto puro extraido do conteudo, usado pela pesquisa global.
   contentText String @default("") @db.Text
 
-  wordCount  Int       @default(0)
-  isFavorite Boolean   @default(false)
-  isPinned   Boolean   @default(false)
-  position   Int       @default(0)
+  wordCount  Int     @default(0)
+  isFavorite Boolean @default(false)
+  isPinned   Boolean @default(false)
+  position   Int     @default(0)
 
   /// Ultima vez que a pagina foi aberta, usado pela lista de recentes.
   /// Separado de updatedAt porque abrir para ler nao e o mesmo que editar.
@@ -342,9 +351,7 @@ model Task {
   /// Pagina de anotacoes vinculada, opcional.
   pageId String? @db.Uuid
 
-  /// Reservado para a Etapa 8 (Calendario). Sem relacao de verdade ainda:
-  /// o modelo de evento nao existe. So guarda o id para nao precisar migrar
-  /// de novo quando o Calendario chegar.
+  /// Evento de calendario vinculado, opcional.
   calendarEventId String? @db.Uuid
 
   archivedAt DateTime?
@@ -352,13 +359,15 @@ model Task {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  column      TaskColumn           @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  page        Page?                @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  column      TaskColumn          @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  page        Page?               @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  event       CalendarEvent?      @relation(fields: [calendarEventId], references: [id], onDelete: SetNull)
   checklist   TaskChecklistItem[]
   attachments TaskAttachment[]
 
   @@index([columnId, deletedAt, position])
   @@index([pageId])
+  @@index([calendarEventId])
   @@index([dueDate])
   @@map("tasks")
 }
@@ -409,6 +418,53 @@ model PageAttachment {
 
   @@index([pageId])
   @@map("page_attachments")
+}
+
+// -----------------------------------------------------------------------------
+// Calendario
+// -----------------------------------------------------------------------------
+
+model CalendarEvent {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @db.Uuid
+  title       String      @db.VarChar(200)
+  description String?     @db.Text
+  location    String?     @db.VarChar(200)
+  link        String?     @db.VarChar(500)
+  color       EntityColor @default(indigo)
+  allDay      Boolean     @default(false)
+  startAt     DateTime
+  endAt       DateTime
+
+  recurrenceFreq     RecurrenceFrequency @default(none)
+  recurrenceInterval Int                 @default(1)
+  recurrenceUntil    DateTime?
+
+  /// Minutos antes do inicio da ocorrencia para enviar o lembrete por e-mail.
+  /// Nulo desativa o lembrete.
+  reminderMinutesBefore Int?
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId, deletedAt, startAt])
+  @@map("calendar_events")
+}
+
+/// Evita reenviar o mesmo lembrete: uma linha por ocorrencia ja avisada.
+model CalendarEventReminderLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  eventId           String   @db.Uuid
+  occurrenceStartAt DateTime
+  sentAt            DateTime @default(now())
+
+  @@unique([eventId, occurrenceStartAt])
+  @@map("calendar_event_reminder_logs")
 }
 
 // -----------------------------------------------------------------------------

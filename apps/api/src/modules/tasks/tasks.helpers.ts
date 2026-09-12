@@ -21,6 +21,7 @@ export const SELECAO_DE_TAREFAS = {
   position: true,
   pageId: true,
   page: { select: { id: true, title: true } },
+  event: { select: { id: true, title: true, startAt: true } },
   checklist: { select: { done: true } },
   _count: { select: { attachments: true } },
 } as const;
@@ -36,6 +37,7 @@ export interface TarefaBruta {
   position: number;
   pageId: string | null;
   page: { id: string; title: string } | null;
+  event: { id: string; title: string; startAt: Date } | null;
   checklist: { done: boolean }[];
   _count: { attachments: number };
 }
@@ -51,6 +53,13 @@ export function montarTarefaResumida(tarefa: TarefaBruta): TarefaResumida {
     archivedAt: tarefa.archivedAt?.toISOString() ?? null,
     position: tarefa.position,
     pagina: tarefa.page ? { id: tarefa.page.id, title: tarefa.page.title } : null,
+    evento: tarefa.event
+      ? {
+          id: tarefa.event.id,
+          title: tarefa.event.title,
+          startAt: tarefa.event.startAt.toISOString(),
+        }
+      : null,
     totalDeChecklist: tarefa.checklist.length,
     checklistConcluidos: tarefa.checklist.filter((item) => item.done).length,
     totalDeAnexos: tarefa._count.attachments,
@@ -80,6 +89,7 @@ export function montarColuna(coluna: ColunaBruta): ColunaDeTarefas {
 /** Campos carregados para o detalhe completo de uma tarefa. */
 export const INCLUIR_TAREFA_COMPLETA = {
   page: { select: { id: true, title: true } },
+  event: { select: { id: true, title: true, startAt: true } },
   checklist: { orderBy: { position: 'asc' as const } },
   attachments: { orderBy: { createdAt: 'asc' as const } },
 } as const;
@@ -111,6 +121,7 @@ export interface TarefaCompletaBruta {
   position: number;
   pageId: string | null;
   page: { id: string; title: string } | null;
+  event: { id: string; title: string; startAt: Date } | null;
   createdAt: Date;
   updatedAt: Date;
   checklist: ItemDeChecklistBruto[];
@@ -143,6 +154,13 @@ export function montarTarefaCompleta(tarefa: TarefaCompletaBruta): TarefaComplet
     archivedAt: tarefa.archivedAt?.toISOString() ?? null,
     position: tarefa.position,
     pagina: tarefa.page ? { id: tarefa.page.id, title: tarefa.page.title } : null,
+    evento: tarefa.event
+      ? {
+          id: tarefa.event.id,
+          title: tarefa.event.title,
+          startAt: tarefa.event.startAt.toISOString(),
+        }
+      : null,
     createdAt: tarefa.createdAt.toISOString(),
     updatedAt: tarefa.updatedAt.toISOString(),
     totalDeChecklist: tarefa.checklist.length,

@@ -33,6 +33,9 @@ export type Locale = (typeof LOCALES)[number];
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
+export const RECURRENCE_FREQUENCIES = ['none', 'daily', 'weekly', 'monthly'] as const;
+export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
+
 /** Cores permitidas para grupos, tags e categorias. */
 export const ENTITY_COLORS = [
   'indigo',

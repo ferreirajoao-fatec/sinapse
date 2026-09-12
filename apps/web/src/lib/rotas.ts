@@ -28,7 +28,7 @@ export const NAVEGACAO_PRINCIPAL: ItemDeNavegacao[] = [
   { href: '/', rotulo: 'Inicio', Icone: House, noCelular: true },
   { href: '/notas', rotulo: 'Anotacoes', Icone: BookOpen, noCelular: true },
   { href: '/tarefas', rotulo: 'Tarefas', Icone: ListChecks, noCelular: true },
-  { href: '/calendario', rotulo: 'Calendario', Icone: CalendarDays, etapa: 'Etapa 8' },
+  { href: '/calendario', rotulo: 'Calendario', Icone: CalendarDays },
   { href: '/assistente', rotulo: 'Assistente', Icone: Sparkles, etapa: 'Etapa 9' },
 ];
 

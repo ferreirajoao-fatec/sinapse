@@ -14,6 +14,7 @@ import type {
   UrlAssinada,
   UrlDeUpload,
 } from '@sinapse/shared';
+import { CalendarService } from '../calendar/calendar.service';
 import { StorageService } from '../files/storage.service';
 import type { PrismaEscopado } from '../../common/prisma/escopo-do-usuario';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -39,6 +40,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly calendario: CalendarService,
   ) {}
 
   /** Usado pelo front para esconder a secao de anexos quando nao ha S3 configurado. */
@@ -84,6 +86,10 @@ export class TasksService {
       await this.exigirPaginaPropria(db, dados.pageId);
     }
 
+    if (dados.calendarEventId) {
+      await this.calendario.exigirEventoProprio(db, dados.calendarEventId);
+    }
+
     const ultima = await db.task.findFirst({
       where: { columnId: dados.columnId, deletedAt: null },
       orderBy: { position: 'desc' },
@@ -98,6 +104,7 @@ export class TasksService {
         priority: dados.priority,
         dueDate: dados.dueDate ? new Date(dados.dueDate) : null,
         pageId: dados.pageId ?? null,
+        calendarEventId: dados.calendarEventId ?? null,
         position: (ultima?.position ?? -1) + 1,
       },
       include: INCLUIR_TAREFA_COMPLETA,
@@ -119,6 +126,10 @@ export class TasksService {
       await this.exigirPaginaPropria(db, dados.pageId);
     }
 
+    if (dados.calendarEventId) {
+      await this.calendario.exigirEventoProprio(db, dados.calendarEventId);
+    }
+
     const alteradas = await db.task.updateMany({
       where: { id: tarefaId, deletedAt: null },
       data: {
@@ -129,6 +140,7 @@ export class TasksService {
           ? { dueDate: dados.dueDate ? new Date(dados.dueDate) : null }
           : {}),
         ...(dados.pageId !== undefined ? { pageId: dados.pageId } : {}),
+        ...(dados.calendarEventId !== undefined ? { calendarEventId: dados.calendarEventId } : {}),
         ...(dados.completed !== undefined
           ? { completedAt: dados.completed ? new Date() : null }
           : {}),

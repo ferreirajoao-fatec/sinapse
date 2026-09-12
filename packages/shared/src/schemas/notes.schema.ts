@@ -111,6 +111,7 @@ export const TIPOS_NA_LIXEIRA = [
   'pagina',
   'coluna_de_tarefas',
   'tarefa',
+  'evento',
 ] as const;
 export type TipoNaLixeira = (typeof TIPOS_NA_LIXEIRA)[number];
 
