@@ -1,10 +1,11 @@
 'use client';
 
-import type { Theme } from '@sinapse/shared';
+import type { FontFamily, Theme } from '@sinapse/shared';
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useRef } from 'react';
 import { usarUsuario } from '@/hooks/usar-usuario';
 import { atualizarPreferencias } from '@/lib/auth';
+import { PILHA_DE_FONTES } from '@/lib/fontes';
 
 /**
  * Mantem aparencia e acessibilidade sincronizadas entre o navegador e a conta.
@@ -18,6 +19,7 @@ export function usarPreferencias() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const jaAplicouDoServidor = useRef(false);
 
+  const fonte = usuario?.preferences.fontFamily ?? 'inter';
   const escala = usuario?.preferences.fontScale ?? 100;
   const movimentoReduzido = usuario?.preferences.reducedMotion ?? false;
 
@@ -36,6 +38,11 @@ export function usarPreferencias() {
   useEffect(() => {
     document.documentElement.style.setProperty('--escala-fonte', String(escala / 100));
   }, [escala]);
+
+  // Mesma ideia: troca a fonte do sistema inteiro sobrescrevendo --font-sans.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-sans', PILHA_DE_FONTES[fonte]);
+  }, [fonte]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('movimento-reduzido', movimentoReduzido);
@@ -57,6 +64,21 @@ export function usarPreferencias() {
       }
     },
     [setTheme, usuario, definirUsuario],
+  );
+
+  const definirFonte = useCallback(
+    async (nova: FontFamily) => {
+      if (!usuario) return;
+
+      definirUsuario({ ...usuario, preferences: { ...usuario.preferences, fontFamily: nova } });
+
+      try {
+        definirUsuario(await atualizarPreferencias({ fontFamily: nova }));
+      } catch {
+        // idem
+      }
+    },
+    [usuario, definirUsuario],
   );
 
   const definirEscala = useCallback(
@@ -99,9 +121,11 @@ export function usarPreferencias() {
   return {
     tema: (theme ?? 'system') as Theme,
     temaResolvido: resolvedTheme,
+    fonte,
     escala,
     movimentoReduzido,
     definirTema,
+    definirFonte,
     definirEscala,
     definirMovimentoReduzido,
     alternarClaroEscuro,

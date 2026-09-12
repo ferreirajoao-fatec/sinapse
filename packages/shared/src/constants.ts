@@ -30,6 +30,10 @@ export type Theme = (typeof THEMES)[number];
 export const LOCALES = ['pt-BR', 'en-US'] as const;
 export type Locale = (typeof LOCALES)[number];
 
+/** Fontes disponiveis para o texto do sistema. "inter" e a padrao atual. */
+export const FONT_FAMILIES = ['inter', 'sistema', 'roboto', 'lexend'] as const;
+export type FontFamily = (typeof FONT_FAMILIES)[number];
+
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 

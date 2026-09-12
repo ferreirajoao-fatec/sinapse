@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LOCALES, THEMES } from '../constants';
+import { FONT_FAMILIES, LOCALES, THEMES } from '../constants';
 import { emailSchema, nameSchema, passwordSchema } from './auth.schema';
 
 /** Formato publico do usuario. Nunca contem hash de senha nem tokens. */
@@ -17,6 +17,7 @@ export const usuarioPublicoSchema = z.object({
   preferences: z.object({
     theme: z.enum(THEMES),
     locale: z.enum(LOCALES),
+    fontFamily: z.enum(FONT_FAMILIES),
     fontScale: z.number(),
     reducedMotion: z.boolean(),
     aiEnabled: z.boolean(),
@@ -48,6 +49,7 @@ export const definirSenhaSchema = z.object({
 export const atualizarPreferenciasSchema = z.object({
   theme: z.enum(THEMES).optional(),
   locale: z.enum(LOCALES).optional(),
+  fontFamily: z.enum(FONT_FAMILIES).optional(),
   fontScale: z.number().int().min(80).max(150).optional(),
   reducedMotion: z.boolean().optional(),
 });

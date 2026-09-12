@@ -48,6 +48,7 @@ export class UsersService {
       preferences: {
         theme: usuario.preferences?.theme ?? 'system',
         locale: usuario.preferences?.locale === 'en_US' ? 'en-US' : 'pt-BR',
+        fontFamily: usuario.preferences?.fontFamily ?? 'inter',
         fontScale: usuario.preferences?.fontScale ?? 100,
         reducedMotion: usuario.preferences?.reducedMotion ?? false,
         aiEnabled: usuario.preferences?.aiEnabled ?? false,
@@ -82,12 +83,14 @@ export class UsersService {
         userId,
         ...(dados.theme ? { theme: dados.theme } : {}),
         ...(locale ? { locale } : {}),
+        ...(dados.fontFamily ? { fontFamily: dados.fontFamily } : {}),
         ...(dados.fontScale !== undefined ? { fontScale: dados.fontScale } : {}),
         ...(dados.reducedMotion !== undefined ? { reducedMotion: dados.reducedMotion } : {}),
       },
       update: {
         ...(dados.theme ? { theme: dados.theme } : {}),
         ...(locale ? { locale } : {}),
+        ...(dados.fontFamily ? { fontFamily: dados.fontFamily } : {}),
         ...(dados.fontScale !== undefined ? { fontScale: dados.fontScale } : {}),
         ...(dados.reducedMotion !== undefined ? { reducedMotion: dados.reducedMotion } : {}),
       },

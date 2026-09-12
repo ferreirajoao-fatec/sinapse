@@ -1,12 +1,13 @@
 'use client';
 
-import type { Theme } from '@sinapse/shared';
+import { FONT_FAMILIES, type Theme } from '@sinapse/shared';
 import { Keyboard, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Interruptor } from '@/components/ui/interruptor';
 import { usarNavegacao } from '@/hooks/usar-navegacao';
 import { usarPreferencias } from '@/hooks/usar-preferencias';
+import { DESCRICAO_DA_FONTE, PILHA_DE_FONTES, ROTULO_DA_FONTE } from '@/lib/fontes';
 import { cn } from '@/lib/utils';
 
 const TEMAS: { valor: Theme; rotulo: string; descricao: string; Icone: LucideIcon }[] = [
@@ -23,8 +24,16 @@ const TEMAS: { valor: Theme; rotulo: string; descricao: string; Icone: LucideIco
 const ESCALAS = [90, 100, 110, 125, 150];
 
 export default function PaginaDeAparencia() {
-  const { tema, escala, movimentoReduzido, definirTema, definirEscala, definirMovimentoReduzido } =
-    usarPreferencias();
+  const {
+    tema,
+    fonte,
+    escala,
+    movimentoReduzido,
+    definirTema,
+    definirFonte,
+    definirEscala,
+    definirMovimentoReduzido,
+  } = usarPreferencias();
 
   const { abrirAjuda } = usarNavegacao();
 
@@ -67,6 +76,40 @@ export default function PaginaDeAparencia() {
                   />
                   <span className="text-sm font-medium">{rotulo}</span>
                   <span className="text-xs text-[var(--texto-suave)]">{descricao}</span>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader titulo="Fonte" descricao="A fonte usada em todo o sistema" />
+        <CardContent>
+          <div role="radiogroup" aria-label="Fonte" className="grid gap-3 sm:grid-cols-2">
+            {FONT_FAMILIES.map((valor) => {
+              const ativo = fonte === valor;
+
+              return (
+                <button
+                  key={valor}
+                  type="button"
+                  role="radio"
+                  aria-checked={ativo}
+                  onClick={() => void definirFonte(valor)}
+                  className={cn(
+                    'flex cursor-pointer flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors',
+                    ativo
+                      ? 'border-[var(--destaque)] bg-[var(--destaque-suave)]'
+                      : 'hover:border-[var(--borda-forte)]',
+                  )}
+                >
+                  <span className="text-lg" style={{ fontFamily: PILHA_DE_FONTES[valor] }}>
+                    {ROTULO_DA_FONTE[valor]}
+                  </span>
+                  <span className="text-xs text-[var(--texto-suave)]">
+                    {DESCRICAO_DA_FONTE[valor]}
+                  </span>
                 </button>
               );
             })}

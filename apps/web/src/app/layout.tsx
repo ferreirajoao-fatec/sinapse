@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Mono, Instrument_Serif, Inter } from 'next/font/google';
+import { IBM_Plex_Mono, Instrument_Serif, Inter, Lexend, Roboto } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Provedores } from '@/components/provedores';
 import './globals.css';
@@ -24,6 +24,22 @@ const plexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+// Fontes alternativas oferecidas em Configuracoes > Aparencia. Cada uma tem sua
+// propria variavel CSS e so e baixada pelo navegador quando o usuario escolhe
+// usa-la (o @font-face so dispara download se a fonte estiver de fato em uso).
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--fonte-roboto',
+  display: 'swap',
+});
+
+const lexend = Lexend({
+  subsets: ['latin'],
+  variable: '--fonte-lexend',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: {
     default: 'Sinapse',
@@ -45,7 +61,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={`${inter.variable} ${instrumentSerif.variable} ${plexMono.variable}`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${plexMono.variable} ${roboto.variable} ${lexend.variable}`}
     >
       <body className="min-h-dvh antialiased">
         <Provedores>
