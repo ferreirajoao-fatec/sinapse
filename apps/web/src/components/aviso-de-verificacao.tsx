@@ -13,12 +13,21 @@ import { reenviarVerificacao } from '@/lib/auth';
  * frustra quem so quer experimentar. A confirmacao passa a ser exigida quando
  * a conta for usada para compartilhar conteudo, na etapa de colaboracao.
  */
+
+/**
+ * Ocultada por enquanto: o envio de e-mail em producao ainda nao esta
+ * configurado (falta RESEND_API_KEY / dominio verificado no Resend), entao
+ * o link de confirmacao nunca chega de verdade. Volte a habilitar assim que
+ * o envio estiver configurado.
+ */
+const VERIFICACAO_DE_EMAIL_HABILITADA = false;
+
 export function AvisoDeVerificacao() {
   const { usuario } = usarUsuario();
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
 
-  if (!usuario || usuario.emailVerified) {
+  if (!VERIFICACAO_DE_EMAIL_HABILITADA || !usuario || usuario.emailVerified) {
     return null;
   }
 
@@ -43,7 +52,12 @@ export function AvisoDeVerificacao() {
             : `Enviamos um link para ${usuario.email}. Confirmar garante que voce consegue recuperar a conta.`}
         </span>
         {!enviado ? (
-          <Button variante="secundario" tamanho="sm" carregando={enviando} onClick={() => void reenviar()}>
+          <Button
+            variante="secundario"
+            tamanho="sm"
+            carregando={enviando}
+            onClick={() => void reenviar()}
+          >
             Reenviar
           </Button>
         ) : null}
