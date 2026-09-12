@@ -1,11 +1,15 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ActivityAction, ActivityEntity } from '@prisma/client';
 import type { ItemDaLixeira, TipoNaLixeira } from '@sinapse/shared';
+import { StorageService } from '../files/storage.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
 export class TrashService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * Lixeira unificada.
@@ -299,15 +303,76 @@ export class TrashService {
     await this.registrar(userId, ActivityEntity.calendar_event, id);
   }
 
-  /** Exclusao definitiva de um item. A cascata do banco leva os filhos. */
+  /**
+   * Exclusao definitiva de um item. A cascata do banco leva os filhos, mas
+   * nao os objetos deles no storage (R2/S3) - por isso coletamos as chaves
+   * dos anexos ANTES de apagar as linhas, e removemos do storage depois.
+   */
   async excluirDefinitivamente(userId: string, tipo: TipoNaLixeira, id: string): Promise<void> {
     const db = this.prisma.paraUsuario(userId);
 
+    const chaves = await this.coletarChavesDeAnexos(db, tipo, id);
     const removidos = await this.deletarPorTipo(db, tipo, { id, deletedAt: { not: null } });
 
     if (removidos.count === 0) {
       throw new ForbiddenException('Item nao encontrado na lixeira.');
     }
+
+    await this.removerDoStorage(chaves);
+  }
+
+  /** Chaves de storage de todos os anexos que a cascata do banco vai levar junto. */
+  private async coletarChavesDeAnexos(
+    db: ReturnType<PrismaService['paraUsuario']>,
+    tipo: TipoNaLixeira,
+    id: string,
+  ): Promise<string[]> {
+    switch (tipo) {
+      case 'grupo': {
+        const anexos = await db.pageAttachment.findMany({
+          where: { page: { section: { groupId: id } } },
+          select: { storageKey: true },
+        });
+        return anexos.map((anexo) => anexo.storageKey);
+      }
+      case 'secao': {
+        const anexos = await db.pageAttachment.findMany({
+          where: { page: { sectionId: id } },
+          select: { storageKey: true },
+        });
+        return anexos.map((anexo) => anexo.storageKey);
+      }
+      case 'pagina': {
+        const anexos = await db.pageAttachment.findMany({
+          where: { pageId: id },
+          select: { storageKey: true },
+        });
+        return anexos.map((anexo) => anexo.storageKey);
+      }
+      case 'coluna_de_tarefas': {
+        const anexos = await db.taskAttachment.findMany({
+          where: { task: { columnId: id } },
+          select: { storageKey: true },
+        });
+        return anexos.map((anexo) => anexo.storageKey);
+      }
+      case 'tarefa': {
+        const anexos = await db.taskAttachment.findMany({
+          where: { taskId: id },
+          select: { storageKey: true },
+        });
+        return anexos.map((anexo) => anexo.storageKey);
+      }
+      case 'evento':
+        return [];
+    }
+  }
+
+  /** Falha ao remover do storage nunca derruba a exclusao: o registro ja se foi. */
+  private async removerDoStorage(chaves: string[]): Promise<void> {
+    if (!this.storage.habilitado || chaves.length === 0) return;
+
+    await Promise.all(chaves.map((chave) => this.storage.remover(chave).catch(() => undefined)));
   }
 
   private async deletarPorTipo(
@@ -335,12 +400,31 @@ export class TrashService {
   async esvaziar(userId: string): Promise<{ removidos: number }> {
     const db = this.prisma.paraUsuario(userId);
 
+    // Toda pagina/tarefa que vai ser levada pela cascata (direta ou via
+    // grupo/secao/coluna) ja carrega o proprio deletedAt, porque excluir o
+    // pai grava o mesmo carimbo nos filhos no momento da exclusao.
+    const [anexosDePagina, anexosDeTarefa] = await Promise.all([
+      db.pageAttachment.findMany({
+        where: { page: { deletedAt: { not: null } } },
+        select: { storageKey: true },
+      }),
+      db.taskAttachment.findMany({
+        where: { task: { deletedAt: { not: null } } },
+        select: { storageKey: true },
+      }),
+    ]);
+
     const grupos = await db.group.deleteMany({ where: { deletedAt: { not: null } } });
     const secoes = await db.section.deleteMany({ where: { deletedAt: { not: null } } });
     const paginas = await db.page.deleteMany({ where: { deletedAt: { not: null } } });
     const colunas = await db.taskColumn.deleteMany({ where: { deletedAt: { not: null } } });
     const tarefas = await db.task.deleteMany({ where: { deletedAt: { not: null } } });
     const eventos = await db.calendarEvent.deleteMany({ where: { deletedAt: { not: null } } });
+
+    await this.removerDoStorage([
+      ...anexosDePagina.map((anexo) => anexo.storageKey),
+      ...anexosDeTarefa.map((anexo) => anexo.storageKey),
+    ]);
 
     return {
       removidos:
