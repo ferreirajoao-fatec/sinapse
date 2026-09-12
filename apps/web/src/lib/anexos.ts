@@ -1,3 +1,14 @@
+import { API_URL } from './api';
+
+/**
+ * Endereco estavel para usar direto em <img src>: redireciona (302) para
+ * uma URL assinada nova a cada acesso, entao nunca expira feito a URL de
+ * download. As imagens embutidas na anotacao apontam para ele.
+ */
+export function urlDaImagemDaPagina(paginaId: string, anexoId: string): string {
+  return `${API_URL}/pages/${paginaId}/anexos/${anexoId}/imagem`;
+}
+
 export function formatarBytes(valor: string): string {
   const bytes = Number(valor);
   if (!Number.isFinite(bytes)) return valor;

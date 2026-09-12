@@ -1,5 +1,6 @@
 'use client';
 
+import { NodeSelection } from '@tiptap/pm/state';
 import { BubbleMenu, type Editor } from '@tiptap/react';
 import {
   Bold,
@@ -51,10 +52,12 @@ export function MenuFlutuante({ editor }: { editor: Editor }) {
       shouldShow={({ editor: instancia, from, to }) => {
         // Sem barra dentro de bloco de codigo, onde negrito nao faz sentido.
         if (instancia.isActive('codeBlock')) return false;
+        // Imagem selecionada tem sua propria barra (MenuFlutuanteImagem).
+        if (instancia.state.selection instanceof NodeSelection) return false;
         return from !== to;
       }}
     >
-      <div className="superficie flex items-center gap-0.5 p-1 shadow-elevada">
+      <div className="superficie shadow-elevada flex items-center gap-0.5 p-1">
         <BotaoDeMarca
           rotulo="Negrito"
           atalho="Ctrl B"
@@ -99,7 +102,7 @@ export function MenuFlutuante({ editor }: { editor: Editor }) {
             aoClicar={() => setPainel(painel === 'cor' ? null : 'cor')}
           />
           {painel === 'cor' ? (
-            <div className="superficie absolute top-full left-0 z-50 mt-1 flex w-40 flex-wrap gap-1 p-2 shadow-elevada">
+            <div className="superficie shadow-elevada absolute left-0 top-full z-50 mt-1 flex w-40 flex-wrap gap-1 p-2">
               {CORES_DE_TEXTO.map((cor) => (
                 <button
                   key={cor.rotulo}
@@ -132,7 +135,7 @@ export function MenuFlutuante({ editor }: { editor: Editor }) {
             aoClicar={() => setPainel(painel === 'marcacao' ? null : 'marcacao')}
           />
           {painel === 'marcacao' ? (
-            <div className="superficie absolute top-full left-0 z-50 mt-1 flex w-40 flex-wrap gap-1 p-2 shadow-elevada">
+            <div className="superficie shadow-elevada absolute left-0 top-full z-50 mt-1 flex w-40 flex-wrap gap-1 p-2">
               {CORES_DE_MARCACAO.map((cor) => (
                 <button
                   key={cor.rotulo}
@@ -153,7 +156,7 @@ export function MenuFlutuante({ editor }: { editor: Editor }) {
                   editor.chain().focus().unsetHighlight().run();
                   setPainel(null);
                 }}
-                className="h-7 flex-1 cursor-pointer rounded-md border px-2 text-2xs transition-colors hover:bg-[var(--superficie-suave)]"
+                className="text-2xs h-7 flex-1 cursor-pointer rounded-md border px-2 transition-colors hover:bg-[var(--superficie-suave)]"
               >
                 Remover
               </button>

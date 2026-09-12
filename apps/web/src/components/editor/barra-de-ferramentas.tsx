@@ -12,6 +12,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Image as ImagemIcone,
   Italic,
   List,
   ListOrdered,
@@ -31,9 +32,16 @@ import { cn } from '@/lib/utils';
  * Traz o que se usa com mais frequencia. O conjunto completo continua acessivel
  * pelo menu "/" e pelos atalhos, para nao transformar a barra em um painel.
  */
-export function BarraDeFerramentas({ editor }: { editor: Editor }) {
+export function BarraDeFerramentas({
+  editor,
+  aoEscolherImagem,
+}: {
+  editor: Editor;
+  /** Abre o seletor de arquivo para subir e inserir uma imagem. */
+  aoEscolherImagem?: () => void;
+}) {
   return (
-    <div className="sticky top-14 z-10 -mx-1 flex flex-wrap items-center gap-0.5 border-b bg-[var(--fundo)]/95 px-1 py-1.5 backdrop-blur lg:top-0">
+    <div className="bg-[var(--fundo)]/95 sticky top-14 z-10 -mx-1 flex flex-wrap items-center gap-0.5 border-b px-1 py-1.5 backdrop-blur lg:top-0">
       <Botao
         rotulo="Desfazer"
         atalho="Ctrl Z"
@@ -175,6 +183,9 @@ export function BarraDeFerramentas({ editor }: { editor: Editor }) {
           editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
         }
       />
+      {aoEscolherImagem ? (
+        <Botao rotulo="Inserir imagem" Icone={ImagemIcone} aoClicar={aoEscolherImagem} />
+      ) : null}
     </div>
   );
 }

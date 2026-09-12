@@ -299,11 +299,13 @@ export default function PaginaDaAnotacao() {
   const editor = (
     <Editor
       key={pagina.id}
+      paginaId={pagina.id}
       conteudoInicial={pagina.content}
       somenteLeitura={modoLeitura}
       modoFoco={modoFoco}
       aoSalvar={salvarConteudo}
       aoMudarEstatisticas={setEstatisticas}
+      aoAnexosAtualizados={(anexos) => setPagina((atual) => (atual ? { ...atual, anexos } : atual))}
     />
   );
 

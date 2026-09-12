@@ -2,7 +2,6 @@ import CharacterCount from '@tiptap/extension-character-count';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
-import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Table from '@tiptap/extension-table';
@@ -17,6 +16,7 @@ import Underline from '@tiptap/extension-underline';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import { BlocoInformativo } from './extensoes/bloco-informativo';
+import { ImagemAlinhavel } from './extensoes/imagem-alinhavel';
 
 /** Realce de sintaxe apenas das linguagens comuns, para nao inchar o pacote. */
 export const lowlight = createLowlight(common);
@@ -91,7 +91,7 @@ export function montarExtensoes(placeholder = 'Digite / para ver os comandos') {
       protocols: ['http', 'https', 'mailto'],
       HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
     }),
-    Image.configure({ inline: false, allowBase64: false }),
+    ImagemAlinhavel.configure({ inline: false, allowBase64: false }),
     Table.configure({ resizable: true }),
     TableRow,
     TableHeader,

@@ -11,8 +11,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import {
   atualizarEtiquetaSchema,
   atualizarGrupoSchema,
@@ -275,6 +277,20 @@ export class NotesController {
     @Param('anexoId', ParseUUIDPipe) anexoId: string,
   ) {
     return this.paginas.urlDeDownload(userId, id, anexoId);
+  }
+
+  @Get('pages/:id/anexos/:anexoId/imagem')
+  @ApiOperation({
+    summary: 'Redireciona para o objeto da imagem, para uso direto em <img src>',
+  })
+  async imagemDoAnexo(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('anexoId', ParseUUIDPipe) anexoId: string,
+    @Res() resposta: Response,
+  ): Promise<void> {
+    const { url } = await this.paginas.urlDeDownload(userId, id, anexoId);
+    resposta.redirect(HttpStatus.FOUND, url);
   }
 
   @Delete('pages/:id/anexos/:anexoId')

@@ -341,6 +341,15 @@ describe('Anotacoes (e2e)', () => {
       .expect(404);
   });
 
+  it('a rota de imagem embutida tambem recusa um anexo que nao existe', async () => {
+    const anexoInexistente = '00000000-0000-0000-0000-000000000000';
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/pages/${paginaDaAlice}/anexos/${anexoInexistente}/imagem`)
+      .set('Cookie', cookiesAlice)
+      .expect(404);
+  });
+
   // ---------------------------------------------------------------------------
   // Lixeira
   // ---------------------------------------------------------------------------

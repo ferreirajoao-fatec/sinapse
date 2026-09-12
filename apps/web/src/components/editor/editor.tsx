@@ -1,15 +1,19 @@
 'use client';
 
-import type { ConteudoDaPagina } from '@sinapse/shared';
+import type { AnexoDePagina, ConteudoDaPagina } from '@sinapse/shared';
 import { EditorContent, useEditor, type Editor as InstanciaDoEditor } from '@tiptap/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usarAutosave } from '@/hooks/usar-autosave';
+import { ApiError } from '@/lib/api';
+import { subirArquivo, urlDaImagemDaPagina } from '@/lib/anexos';
+import { confirmarUploadDaPagina, criarUrlDeUploadDaPagina } from '@/lib/conteudos';
 import { cn } from '@/lib/utils';
 import { BarraDaTabela } from './barra-da-tabela';
 import { BarraDeFerramentas } from './barra-de-ferramentas';
 import { montarExtensoes } from './configuracao';
 import { MenuDeComandos, type ReferenciaDoMenu } from './menu-de-comandos';
 import { MenuFlutuante } from './menu-flutuante';
+import { MenuFlutuanteImagem } from './menu-flutuante-imagem';
 import { COMANDOS, normalizar } from './comandos';
 import { IndicadorDeSalvamento } from './indicador-de-salvamento';
 
@@ -28,20 +32,28 @@ interface PosicaoDoMenu {
  * Etapa 6 e a IA da Etapa 9 leiam o documento por blocos.
  */
 export function Editor({
+  paginaId,
   conteudoInicial,
   somenteLeitura = false,
   modoFoco = false,
   aoSalvar,
   aoMudarEstatisticas,
+  aoAnexosAtualizados,
 }: {
+  paginaId: string;
   conteudoInicial: ConteudoDaPagina;
   somenteLeitura?: boolean;
   modoFoco?: boolean;
   aoSalvar: (conteudo: ConteudoDaPagina) => Promise<void>;
   aoMudarEstatisticas?: (dados: { palavras: number; caracteres: number }) => void;
+  /** Chamado apos subir uma imagem, para a lista de Anexos da pagina refletir o novo arquivo. */
+  aoAnexosAtualizados?: (anexos: AnexoDePagina[]) => void;
 }) {
   const [menu, setMenu] = useState<PosicaoDoMenu | null>(null);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
+  const [erroDeImagem, setErroDeImagem] = useState<string | null>(null);
   const referenciaDoMenu = useRef<ReferenciaDoMenu>(null);
+  const inputDeImagem = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
 
   const { estado, agendar, gravarAgora } = usarAutosave<ConteudoDaPagina>({ aoSalvar });
@@ -105,6 +117,51 @@ export function Editor({
       y: coordenadas.bottom - (caixa?.top ?? 0) + 6,
     });
   }, []);
+
+  const enviarImagem = useCallback(
+    async (arquivo: File) => {
+      if (!editor) return;
+
+      setErroDeImagem(null);
+      setEnviandoImagem(true);
+
+      try {
+        const { url, storageKey } = await criarUrlDeUploadDaPagina(paginaId, {
+          fileName: arquivo.name,
+          mimeType: arquivo.type || 'application/octet-stream',
+          sizeBytes: arquivo.size,
+        });
+
+        await subirArquivo(url, arquivo);
+
+        const atualizada = await confirmarUploadDaPagina(paginaId, {
+          fileName: arquivo.name,
+          mimeType: arquivo.type || 'application/octet-stream',
+          sizeBytes: arquivo.size,
+          storageKey,
+        });
+
+        aoAnexosAtualizados?.(atualizada.anexos);
+
+        const novoAnexo = atualizada.anexos[atualizada.anexos.length - 1];
+        if (novoAnexo) {
+          editor
+            .chain()
+            .focus()
+            .setImage({ src: urlDaImagemDaPagina(paginaId, novoAnexo.id) })
+            .run();
+        }
+      } catch (falha) {
+        setErroDeImagem(
+          falha instanceof ApiError ? falha.message : 'Nao foi possivel enviar a imagem.',
+        );
+      } finally {
+        setEnviandoImagem(false);
+        if (inputDeImagem.current) inputDeImagem.current.value = '';
+      }
+    },
+    [editor, paginaId, aoAnexosAtualizados],
+  );
 
   const escolherComando = useCallback(
     (comandoId: string) => {
@@ -184,14 +241,42 @@ export function Editor({
 
   return (
     <div ref={container} className="relative">
-      {!somenteLeitura ? <BarraDeFerramentas editor={editor} /> : null}
+      {!somenteLeitura ? (
+        <BarraDeFerramentas
+          editor={editor}
+          aoEscolherImagem={() => inputDeImagem.current?.click()}
+        />
+      ) : null}
       {!somenteLeitura ? <MenuFlutuante editor={editor} /> : null}
+      {!somenteLeitura ? <MenuFlutuanteImagem editor={editor} /> : null}
+
+      {!somenteLeitura ? (
+        <input
+          ref={inputDeImagem}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(evento) => {
+            const arquivo = evento.target.files?.[0];
+            if (arquivo) void enviarImagem(arquivo);
+          }}
+        />
+      ) : null}
 
       <div className={cn('pt-4', modoFoco && 'mx-auto max-w-2xl')}>
         {!somenteLeitura ? (
           <div className="pb-2">
             <BarraDaTabela editor={editor} />
           </div>
+        ) : null}
+
+        {erroDeImagem ? (
+          <p role="alert" className="text-perigo-500 pb-2 text-xs">
+            {erroDeImagem}
+          </p>
+        ) : null}
+        {enviandoImagem ? (
+          <p className="pb-2 text-xs text-[var(--texto-tenue)]">Enviando imagem...</p>
         ) : null}
 
         <EditorContent editor={editor} />

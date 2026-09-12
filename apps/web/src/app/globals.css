@@ -368,6 +368,29 @@
     height: auto;
   }
 
+  .conteudo-do-editor img[data-align='centro'] {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .conteudo-do-editor img[data-align='esquerda'] {
+    float: left;
+    max-width: 45%;
+    margin: 0.35em 1em 0.5em 0;
+  }
+
+  .conteudo-do-editor img[data-align='direita'] {
+    float: right;
+    max-width: 45%;
+    margin: 0.35em 0 0.5em 1em;
+  }
+
+  .conteudo-do-editor img.ProseMirror-selectednode {
+    outline: 2px solid var(--destaque);
+    outline-offset: 2px;
+  }
+
   /* --- Listas de tarefas -------------------------------------------------- */
 
   .conteudo-do-editor ul[data-type='taskList'] {
