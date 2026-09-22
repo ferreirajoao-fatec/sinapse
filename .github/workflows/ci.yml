@@ -35,9 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A versao do pnpm vem do campo packageManager do package.json; repetir
+      # aqui fazia o action-setup falhar com "Multiple versions of pnpm".
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
