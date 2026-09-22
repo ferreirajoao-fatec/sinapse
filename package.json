@@ -36,5 +36,12 @@
     "prettier-plugin-tailwindcss": "^0.6.9",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "prosemirror-model": "1.25.11",
+      "prosemirror-state": "1.4.4",
+      "prosemirror-view": "1.42.3"
+    }
   }
 }

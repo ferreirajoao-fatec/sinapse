@@ -102,6 +102,26 @@ export const criarEtiquetaSchema = z.object({
 export const atualizarEtiquetaSchema = criarEtiquetaSchema.partial();
 
 // -----------------------------------------------------------------------------
+// Compartilhamento de secoes
+// -----------------------------------------------------------------------------
+
+/** Papel de um membro convidado. O dono da secao nao entra nesta lista. */
+export const PAPEIS_NA_SECAO = ['viewer', 'editor'] as const;
+export type PapelNaSecao = (typeof PAPEIS_NA_SECAO)[number];
+
+/** O que a conta logada pode fazer numa secao ou pagina. */
+export type PermissaoNaSecao = 'dono' | 'editor' | 'leitor';
+
+export const adicionarMembroSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Informe um e-mail valido'),
+  role: z.enum(PAPEIS_NA_SECAO).default('viewer'),
+});
+
+export const atualizarMembroSchema = z.object({
+  role: z.enum(PAPEIS_NA_SECAO),
+});
+
+// -----------------------------------------------------------------------------
 // Lixeira
 // -----------------------------------------------------------------------------
 
@@ -144,6 +164,32 @@ export interface SecaoNaArvore {
   position: number;
   archivedAt: string | null;
   paginas: PaginaNaArvore[];
+  /** Quantas pessoas alem do dono tem acesso. So vem na arvore do dono. */
+  totalDeMembros?: number;
+}
+
+/** Secao de outra conta, como aparece em "Compartilhadas comigo". */
+export interface SecaoCompartilhada extends SecaoNaArvore {
+  permissao: Exclude<PermissaoNaSecao, 'dono'>;
+  grupo: string;
+  dono: { nome: string; email: string };
+}
+
+export interface MembroDaSecao {
+  userId: string;
+  nome: string;
+  email: string;
+  avatarUrl: string | null;
+  /** 'owner' marca o dono, que sempre aparece primeiro e nao pode ser removido. */
+  role: PapelNaSecao | 'owner';
+  desde: string;
+}
+
+export interface MembrosDaSecao {
+  secaoId: string;
+  membros: MembroDaSecao[];
+  /** Verdadeiro so para o dono: e quem pode convidar, trocar papeis e remover. */
+  podeGerenciar: boolean;
 }
 
 export interface GrupoNaArvore {
@@ -182,6 +228,8 @@ export interface PaginaCompleta {
   tags: EtiquetaResumida[];
   anexos: AnexoDePagina[];
   caminho: { grupoId: string; grupo: string; secaoId: string; secao: string };
+  /** O que a conta logada pode fazer com esta pagina. */
+  permissao: PermissaoNaSecao;
 }
 
 export interface PaginaResumida {
@@ -217,4 +265,6 @@ export type ReordenarInput = z.infer<typeof reordenarSchema>;
 export type DefinirEtiquetasInput = z.infer<typeof definirEtiquetasSchema>;
 export type CriarEtiquetaInput = z.infer<typeof criarEtiquetaSchema>;
 export type AtualizarEtiquetaInput = z.infer<typeof atualizarEtiquetaSchema>;
+export type AdicionarMembroInput = z.infer<typeof adicionarMembroSchema>;
+export type AtualizarMembroInput = z.infer<typeof atualizarMembroSchema>;
 export type ConteudoDaPagina = z.infer<typeof conteudoDaPaginaSchema>;

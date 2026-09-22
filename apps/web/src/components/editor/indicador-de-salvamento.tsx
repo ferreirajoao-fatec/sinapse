@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertCircle, Check, Loader2 } from 'lucide-react';
-import type { EstadoDoSalvamento } from '@/hooks/usar-autosave';
+import { AlertCircle, Check, CloudOff, Loader2 } from 'lucide-react';
+
+export type EstadoDoSalvamento = 'ocioso' | 'pendente' | 'salvando' | 'salvo' | 'erro' | 'offline';
 
 /**
  * Estado do salvamento, anunciado tambem por leitores de tela.
@@ -33,6 +34,11 @@ export function IndicadorDeSalvamento({
           <>
             <AlertCircle aria-hidden="true" className="text-perigo-500 size-3" />
             Nao salvou. Tentando de novo...
+          </>
+        ) : estado === 'offline' ? (
+          <>
+            <CloudOff aria-hidden="true" className="text-atencao-500 size-3" />
+            Sem conexao. O que voce digitar sobe ao reconectar.
           </>
         ) : estado === 'pendente' ? (
           <span className="text-[var(--texto-tenue)]">Alteracoes nao salvas</span>

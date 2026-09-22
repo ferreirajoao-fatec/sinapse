@@ -1,6 +1,6 @@
 'use client';
 
-import type { ConteudoDaPagina, EtiquetaResumida, PaginaCompleta } from '@sinapse/shared';
+import type { EtiquetaResumida, PaginaCompleta } from '@sinapse/shared';
 import {
   ArrowRightLeft,
   BookOpen,
@@ -13,10 +13,12 @@ import {
   Pencil,
   Star,
   Trash2,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DialogoDeCompartilhar } from '@/components/conteudos/dialogo-de-compartilhar';
 import { DialogoDeConfirmacao } from '@/components/conteudos/dialogo-de-confirmacao';
 import { DialogoDeMover } from '@/components/conteudos/dialogo-de-mover';
 import { MenuSuspenso, type AcaoDoMenu } from '@/components/conteudos/menu-suspenso';
@@ -24,12 +26,16 @@ import { SeletorDeEtiquetas } from '@/components/conteudos/seletor-de-etiquetas'
 import { SeletorDeIcone } from '@/components/conteudos/seletor-de-icone';
 import { Editor } from '@/components/editor/editor';
 import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialogo } from '@/components/ui/dialogo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usarArvore } from '@/hooks/usar-arvore';
+import { usarColaboracao, type PessoaPresente } from '@/hooks/usar-colaboracao';
+import { usarUsuario } from '@/hooks/usar-usuario';
 import { formatarBytes, subirArquivo } from '@/lib/anexos';
 import { ApiError } from '@/lib/api';
+import { corDoUsuario } from '@/lib/colaboracao';
 import {
   anexosDeNotasDisponiveis,
   atualizarPagina,
@@ -51,6 +57,8 @@ export default function PaginaDaAnotacao() {
   const paginaId = parametros.paginaId;
   const router = useRouter();
   const { recarregar, abrirCaminho } = usarArvore();
+  const { usuario } = usarUsuario();
+  const colaboracao = usarColaboracao(paginaId);
 
   const [pagina, setPagina] = useState<PaginaCompleta | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -58,7 +66,9 @@ export default function PaginaDaAnotacao() {
   const [estatisticas, setEstatisticas] = useState({ palavras: 0, caracteres: 0 });
   const [modoFoco, setModoFoco] = useState(false);
   const [modoLeitura, setModoLeitura] = useState(false);
-  const [dialogo, setDialogo] = useState<'icone' | 'etiquetas' | 'mover' | 'excluir' | null>(null);
+  const [dialogo, setDialogo] = useState<
+    'icone' | 'etiquetas' | 'mover' | 'excluir' | 'compartilhar' | null
+  >(null);
 
   const [anexosHabilitados, setAnexosHabilitados] = useState(false);
   const [enviandoArquivo, setEnviandoArquivo] = useState(false);
@@ -125,15 +135,6 @@ export default function PaginaDaAnotacao() {
     };
   }, []);
 
-  /** Salvamento do conteudo, chamado pelo editor. */
-  const salvarConteudo = useCallback(
-    async (conteudo: ConteudoDaPagina) => {
-      const atualizada = await atualizarPagina(paginaId, { content: conteudo });
-      setPagina((atual) => (atual ? { ...atual, wordCount: atualizada.wordCount } : atualizada));
-    },
-    [paginaId],
-  );
-
   // Esc sai do modo de foco.
   useEffect(() => {
     if (!modoFoco) return;
@@ -173,6 +174,12 @@ export default function PaginaDaAnotacao() {
   }
 
   const Icone = iconeDeConteudo(pagina.icon);
+
+  // Em secao compartilhada, o leitor ve tudo em modo de leitura, sem controles.
+  const dono = pagina.permissao === 'dono';
+  // O servidor tambem pode rebaixar a conexao para leitura no meio da sessao.
+  const podeEditar = pagina.permissao !== 'leitor' && !colaboracao.somenteLeitura;
+  const somenteLeitura = modoLeitura || !podeEditar;
 
   async function alternarFavorito() {
     if (!pagina) return;
@@ -242,19 +249,7 @@ export default function PaginaDaAnotacao() {
     }
   }
 
-  const acoes: AcaoDoMenu[] = [
-    {
-      id: 'leitura',
-      rotulo: modoLeitura ? 'Voltar a editar' : 'Modo de leitura',
-      Icone: modoLeitura ? Pencil : BookOpen,
-      aoEscolher: () => setModoLeitura((atual) => !atual),
-    },
-    {
-      id: 'foco',
-      rotulo: 'Modo de foco',
-      Icone: Focus,
-      aoEscolher: () => setModoFoco(true),
-    },
+  const acoesDeEdicao: AcaoDoMenu[] = [
     {
       id: 'subpagina',
       rotulo: 'Nova subpagina',
@@ -270,12 +265,16 @@ export default function PaginaDaAnotacao() {
         router.push(`/notas/${nova.id}`);
       },
     },
-    {
-      id: 'mover',
-      rotulo: 'Mover para outra secao',
-      Icone: ArrowRightLeft,
-      aoEscolher: () => setDialogo('mover'),
-    },
+    ...(dono
+      ? [
+          {
+            id: 'mover',
+            rotulo: 'Mover para outra secao',
+            Icone: ArrowRightLeft,
+            aoEscolher: () => setDialogo('mover'),
+          },
+        ]
+      : []),
     {
       id: 'duplicar',
       rotulo: 'Duplicar pagina',
@@ -296,14 +295,41 @@ export default function PaginaDaAnotacao() {
     },
   ];
 
+  const acoes: AcaoDoMenu[] = [
+    ...(podeEditar
+      ? [
+          {
+            id: 'leitura',
+            rotulo: modoLeitura ? 'Voltar a editar' : 'Modo de leitura',
+            Icone: modoLeitura ? Pencil : BookOpen,
+            aoEscolher: () => setModoLeitura((atual) => !atual),
+          },
+        ]
+      : []),
+    {
+      id: 'foco',
+      rotulo: 'Modo de foco',
+      Icone: Focus,
+      aoEscolher: () => setModoFoco(true),
+    },
+    {
+      id: 'compartilhar',
+      rotulo: dono ? 'Compartilhar secao' : 'Pessoas com acesso',
+      Icone: Users,
+      aoEscolher: () => setDialogo('compartilhar'),
+    },
+    ...(podeEditar ? acoesDeEdicao : []),
+  ];
+
   const editor = (
     <Editor
       key={pagina.id}
       paginaId={pagina.id}
       conteudoInicial={pagina.content}
-      somenteLeitura={modoLeitura}
+      colaboracao={colaboracao}
+      usuario={{ name: usuario?.name ?? 'Voce', color: corDoUsuario(usuario?.id ?? paginaId) }}
+      somenteLeitura={somenteLeitura}
       modoFoco={modoFoco}
-      aoSalvar={salvarConteudo}
       aoMudarEstatisticas={setEstatisticas}
       aoAnexosAtualizados={(anexos) => setPagina((atual) => (atual ? { ...atual, anexos } : atual))}
     />
@@ -335,7 +361,7 @@ export default function PaginaDaAnotacao() {
   }
 
   return (
-    <div className={cn('space-y-5', modoLeitura && 'modo-de-leitura')}>
+    <div className={cn('space-y-5', somenteLeitura && 'modo-de-leitura')}>
       <nav aria-label="Trilha de navegacao">
         <ol className="flex flex-wrap items-center gap-1 text-sm text-[var(--texto-suave)]">
           <li>
@@ -354,22 +380,36 @@ export default function PaginaDaAnotacao() {
             <ChevronRight aria-hidden="true" className="size-3.5 text-[var(--texto-tenue)]" />
             {pagina.caminho.secao}
           </li>
+          {!dono ? (
+            <li className="ml-1">
+              <Badge tom={podeEditar ? 'marca' : 'neutro'}>
+                <Users aria-hidden="true" className="size-3" />
+                {podeEditar ? 'Compartilhada - pode editar' : 'Compartilhada - somente leitura'}
+              </Badge>
+            </li>
+          ) : null}
         </ol>
       </nav>
 
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => setDialogo('icone')}
-            aria-label="Trocar o icone da pagina"
-            title="Trocar o icone"
-            className="mt-1 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-[var(--texto-suave)] transition-colors hover:bg-[var(--superficie-suave)]"
-          >
-            <Icone aria-hidden="true" className="size-6" />
-          </button>
+          {podeEditar ? (
+            <button
+              type="button"
+              onClick={() => setDialogo('icone')}
+              aria-label="Trocar o icone da pagina"
+              title="Trocar o icone"
+              className="mt-1 flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-[var(--texto-suave)] transition-colors hover:bg-[var(--superficie-suave)]"
+            >
+              <Icone aria-hidden="true" className="size-6" />
+            </button>
+          ) : (
+            <span className="mt-1 flex size-10 shrink-0 items-center justify-center text-[var(--texto-suave)]">
+              <Icone aria-hidden="true" className="size-6" />
+            </span>
+          )}
 
-          {modoLeitura ? (
+          {somenteLeitura ? (
             <h1 className="min-w-0 flex-1 font-serif text-3xl tracking-tight">{pagina.title}</h1>
           ) : (
             <input
@@ -387,21 +427,24 @@ export default function PaginaDaAnotacao() {
           )}
 
           <div className="mt-1 flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => void alternarFavorito()}
-              aria-label={pagina.isFavorite ? 'Remover dos favoritos' : 'Marcar como favorita'}
-              aria-pressed={pagina.isFavorite}
-              className={cn(
-                'flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--superficie-suave)]',
-                pagina.isFavorite ? 'text-atencao-500' : 'text-[var(--texto-tenue)]',
-              )}
-            >
-              <Star
-                aria-hidden="true"
-                className={cn('size-4', pagina.isFavorite && 'fill-current')}
-              />
-            </button>
+            <PresencaNaPagina presentes={colaboracao.presentes} />
+            {dono ? (
+              <button
+                type="button"
+                onClick={() => void alternarFavorito()}
+                aria-label={pagina.isFavorite ? 'Remover dos favoritos' : 'Marcar como favorita'}
+                aria-pressed={pagina.isFavorite}
+                className={cn(
+                  'flex size-9 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-[var(--superficie-suave)]',
+                  pagina.isFavorite ? 'text-atencao-500' : 'text-[var(--texto-tenue)]',
+                )}
+              >
+                <Star
+                  aria-hidden="true"
+                  className={cn('size-4', pagina.isFavorite && 'fill-current')}
+                />
+              </button>
+            ) : null}
 
             <MenuSuspenso
               rotulo="Acoes da pagina"
@@ -429,7 +472,7 @@ export default function PaginaDaAnotacao() {
             </span>
           ))}
 
-          {!modoLeitura ? (
+          {dono && !modoLeitura ? (
             <button
               type="button"
               onClick={() => setDialogo('etiquetas')}
@@ -439,7 +482,7 @@ export default function PaginaDaAnotacao() {
             </button>
           ) : null}
 
-          {modoLeitura ? (
+          {somenteLeitura ? (
             <span className="text-2xs ml-auto text-[var(--texto-tenue)]">
               Modo de leitura - {estatisticas.palavras} palavras
             </span>
@@ -447,7 +490,7 @@ export default function PaginaDaAnotacao() {
         </div>
       </div>
 
-      {anexosHabilitados && (pagina.anexos.length > 0 || !modoLeitura) ? (
+      {anexosHabilitados && (pagina.anexos.length > 0 || !somenteLeitura) ? (
         <div className="pl-13 space-y-1.5">
           <span className="block text-sm font-medium">
             Anexos {pagina.anexos.length > 0 ? `(${pagina.anexos.length})` : ''}
@@ -476,7 +519,7 @@ export default function PaginaDaAnotacao() {
                       {formatarBytes(anexo.sizeBytes)}
                     </span>
                   </button>
-                  {!modoLeitura ? (
+                  {!somenteLeitura ? (
                     <button
                       type="button"
                       onClick={() => void removerAnexoDaAnotacao(anexo.id)}
@@ -491,7 +534,7 @@ export default function PaginaDaAnotacao() {
             </ul>
           ) : null}
 
-          {!modoLeitura ? (
+          {!somenteLeitura ? (
             <>
               <input
                 ref={inputArquivo}
@@ -555,6 +598,13 @@ export default function PaginaDaAnotacao() {
         />
       </Dialogo>
 
+      <DialogoDeCompartilhar
+        aberto={dialogo === 'compartilhar'}
+        aoFechar={() => setDialogo(null)}
+        secaoId={pagina.sectionId}
+        secaoNome={pagina.caminho.secao}
+      />
+
       {dialogo === 'mover' ? (
         <DialogoDeMover
           aberto
@@ -576,6 +626,48 @@ export default function PaginaDaAnotacao() {
           router.push('/notas');
         }}
       />
+    </div>
+  );
+}
+
+/** Quem mais esta com a pagina aberta agora, com a cor do cursor de cada um. */
+function PresencaNaPagina({ presentes }: { presentes: PessoaPresente[] }) {
+  if (presentes.length === 0) return null;
+
+  const visiveis = presentes.slice(0, 4);
+  const restantes = presentes.length - visiveis.length;
+  const nomes = presentes.map((pessoa) => pessoa.nome).join(', ');
+
+  return (
+    <div
+      className="mr-1 flex items-center -space-x-1.5"
+      role="status"
+      aria-label={`Tambem na pagina: ${nomes}`}
+      title={`Tambem na pagina: ${nomes}`}
+    >
+      {visiveis.map((pessoa) => (
+        <span
+          key={pessoa.clientId}
+          aria-hidden="true"
+          className="flex size-7 items-center justify-center rounded-full border-2 border-[var(--fundo)] text-[0.65rem] font-semibold text-white"
+          style={{ backgroundColor: pessoa.cor }}
+        >
+          {pessoa.nome
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((parte) => parte[0]?.toUpperCase())
+            .join('')}
+        </span>
+      ))}
+      {restantes > 0 ? (
+        <span
+          aria-hidden="true"
+          className="flex size-7 items-center justify-center rounded-full border-2 border-[var(--fundo)] bg-[var(--superficie-suave)] text-[0.65rem] font-medium"
+        >
+          +{restantes}
+        </span>
+      ) : null}
     </div>
   );
 }

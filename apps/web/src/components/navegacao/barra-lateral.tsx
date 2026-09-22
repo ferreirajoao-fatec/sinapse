@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Marca, Simbolo } from '@/components/marca';
 import { MenuDoUsuario } from '@/components/menu-do-usuario';
 import { Dica } from '@/components/ui/dica';
+import { usarArvore } from '@/hooks/usar-arvore';
 import { usarNavegacao } from '@/hooks/usar-navegacao';
 import { detectarMac } from '@/lib/atalhos';
 import {
@@ -15,7 +16,7 @@ import {
   NAVEGACAO_SECUNDARIA,
 } from '@/lib/rotas';
 import { cn } from '@/lib/utils';
-import { ArvoreDeConteudos } from './arvore-de-conteudos';
+import { ArvoreDeConteudos, SecoesCompartilhadas } from './arvore-de-conteudos';
 import { ItemLateral } from './item-de-navegacao';
 
 /**
@@ -26,6 +27,7 @@ import { ItemLateral } from './item-de-navegacao';
 export function ConteudoDaBarra({ recolhida }: { recolhida: boolean }) {
   const caminho = usePathname();
   const { abrirPaleta } = usarNavegacao();
+  const { compartilhadas } = usarArvore();
   const teclaModificadora = detectarMac() ? '⌘' : 'Ctrl';
 
   return (
@@ -77,6 +79,15 @@ export function ConteudoDaBarra({ recolhida }: { recolhida: boolean }) {
               Meus conteudos
             </p>
             <ArvoreDeConteudos />
+          </div>
+        ) : null}
+
+        {!recolhida && compartilhadas.length > 0 ? (
+          <div className="space-y-2 pt-6">
+            <p className="text-2xs px-2.5 font-medium uppercase tracking-wide text-[var(--texto-tenue)]">
+              Compartilhadas comigo
+            </p>
+            <SecoesCompartilhadas />
           </div>
         ) : null}
 

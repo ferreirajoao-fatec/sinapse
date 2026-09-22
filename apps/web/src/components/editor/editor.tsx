@@ -3,7 +3,9 @@
 import type { AnexoDePagina, ConteudoDaPagina } from '@sinapse/shared';
 import { EditorContent, useEditor, type Editor as InstanciaDoEditor } from '@tiptap/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usarAutosave } from '@/hooks/usar-autosave';
+import { Alert } from '@/components/ui/alert';
+import type { EstadoDaColaboracao, SessaoDeColaboracao } from '@/hooks/usar-colaboracao';
+import { usarEstadoDoSalvamento } from '@/hooks/usar-estado-do-salvamento';
 import { ApiError } from '@/lib/api';
 import { subirArquivo, urlDaImagemDaPagina } from '@/lib/anexos';
 import { confirmarUploadDaPagina, criarUrlDeUploadDaPagina } from '@/lib/conteudos';
@@ -24,29 +26,135 @@ interface PosicaoDoMenu {
   inicio: number;
 }
 
+const ATRIBUTOS_DO_CONTEUDO = {
+  class: 'conteudo-do-editor focus:outline-none',
+  role: 'textbox',
+  'aria-multiline': 'true',
+  'aria-label': 'Conteudo da anotacao',
+};
+
 /**
- * Editor de anotacoes.
+ * Editor de anotacoes, com edicao em tempo real.
  *
- * O conteudo trafega como JSON ProseMirror, do mesmo jeito que fica no banco.
- * Nada de HTML no meio do caminho: manter a estrutura permite que a busca da
- * Etapa 6 e a IA da Etapa 9 leiam o documento por blocos.
+ * O documento vive num Y.Doc sincronizado pelo servidor de colaboracao: todos
+ * que estao na pagina veem as alteracoes e os cursores uns dos outros, e o
+ * servidor grava no banco. Nada de HTML no meio do caminho: o banco continua
+ * guardando o JSON ProseMirror, que a busca e a IA leem por blocos.
  */
 export function Editor({
   paginaId,
   conteudoInicial,
+  colaboracao,
+  usuario,
   somenteLeitura = false,
   modoFoco = false,
-  aoSalvar,
   aoMudarEstatisticas,
   aoAnexosAtualizados,
 }: {
   paginaId: string;
+  /** Conteudo salvo, mostrado so enquanto a conexao em tempo real nao abre. */
   conteudoInicial: ConteudoDaPagina;
+  colaboracao: {
+    sessao: SessaoDeColaboracao | null;
+    estado: EstadoDaColaboracao;
+    pendentes: number;
+  };
+  usuario: { name: string; color: string };
   somenteLeitura?: boolean;
   modoFoco?: boolean;
-  aoSalvar: (conteudo: ConteudoDaPagina) => Promise<void>;
   aoMudarEstatisticas?: (dados: { palavras: number; caracteres: number }) => void;
   /** Chamado apos subir uma imagem, para a lista de Anexos da pagina refletir o novo arquivo. */
+  aoAnexosAtualizados?: (anexos: AnexoDePagina[]) => void;
+}) {
+  const { sessao, estado: estadoDaConexao, pendentes } = colaboracao;
+  const [jaSincronizou, setJaSincronizou] = useState(false);
+
+  // Depois da primeira sincronizacao o editor ao vivo fica na tela mesmo se a
+  // rede cair: o Yjs guarda o que for digitado e envia ao reconectar.
+  useEffect(() => {
+    if (estadoDaConexao === 'sincronizado') setJaSincronizou(true);
+  }, [estadoDaConexao]);
+
+  useEffect(() => {
+    setJaSincronizou(false);
+  }, [sessao]);
+
+  if (!sessao || !jaSincronizou) {
+    const falhou = estadoDaConexao === 'desconectado' || estadoDaConexao === 'sem-acesso';
+
+    if (!falhou) {
+      return <EsqueletoDoEditor />;
+    }
+
+    return (
+      <div className="space-y-3">
+        <Alert tipo="atencao" titulo="Edicao em tempo real indisponivel">
+          {estadoDaConexao === 'sem-acesso'
+            ? 'Voce nao tem mais acesso para editar esta pagina.'
+            : 'Nao foi possivel conectar agora. Mostrando a ultima versao salva; tentando de novo...'}
+        </Alert>
+        <VisualizacaoEstatica conteudo={conteudoInicial} />
+      </div>
+    );
+  }
+
+  return (
+    <EditorAoVivo
+      key={paginaId}
+      paginaId={paginaId}
+      sessao={sessao}
+      estadoDaConexao={estadoDaConexao}
+      pendentes={pendentes}
+      usuario={usuario}
+      somenteLeitura={somenteLeitura}
+      modoFoco={modoFoco}
+      aoMudarEstatisticas={aoMudarEstatisticas}
+      aoAnexosAtualizados={aoAnexosAtualizados}
+    />
+  );
+}
+
+function EsqueletoDoEditor() {
+  return (
+    <div className="space-y-3" aria-hidden="true">
+      <div className="animate-pulsar h-9 rounded-md bg-[var(--superficie-suave)]" />
+      <div className="animate-pulsar h-64 rounded-md bg-[var(--superficie-suave)]" />
+    </div>
+  );
+}
+
+/** Ultima versao salva, so para leitura, enquanto nao ha conexao. */
+function VisualizacaoEstatica({ conteudo }: { conteudo: ConteudoDaPagina }) {
+  const editor = useEditor({
+    extensions: montarExtensoes(),
+    content: conteudo,
+    editable: false,
+    immediatelyRender: false,
+    editorProps: { attributes: ATRIBUTOS_DO_CONTEUDO },
+  });
+
+  return editor ? <EditorContent editor={editor} className="pt-4" /> : <EsqueletoDoEditor />;
+}
+
+function EditorAoVivo({
+  paginaId,
+  sessao,
+  estadoDaConexao,
+  pendentes,
+  usuario,
+  somenteLeitura,
+  modoFoco,
+  aoMudarEstatisticas,
+  aoAnexosAtualizados,
+}: {
+  paginaId: string;
+  sessao: SessaoDeColaboracao;
+  estadoDaConexao: EstadoDaColaboracao;
+  pendentes: number;
+  usuario: { name: string; color: string };
+  somenteLeitura: boolean;
+  modoFoco: boolean;
+  aoMudarEstatisticas?: (dados: { palavras: number; caracteres: number }) => void;
   aoAnexosAtualizados?: (anexos: AnexoDePagina[]) => void;
 }) {
   const [menu, setMenu] = useState<PosicaoDoMenu | null>(null);
@@ -56,30 +164,23 @@ export function Editor({
   const inputDeImagem = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
 
-  const { estado, agendar, gravarAgora } = usarAutosave<ConteudoDaPagina>({ aoSalvar });
+  const estado = usarEstadoDoSalvamento(estadoDaConexao, pendentes);
 
-  const editor = useEditor({
-    extensions: montarExtensoes(),
-    content: conteudoInicial,
-    editable: !somenteLeitura,
-    // Necessario no Next: sem isso o HTML do servidor difere do cliente.
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: 'conteudo-do-editor focus:outline-none',
-        role: 'textbox',
-        'aria-multiline': 'true',
-        'aria-label': 'Conteudo da anotacao',
+  const editor = useEditor(
+    {
+      extensions: montarExtensoes(undefined, { ...sessao, usuario }),
+      editable: !somenteLeitura,
+      // Necessario no Next: sem isso o HTML do servidor difere do cliente.
+      immediatelyRender: false,
+      editorProps: { attributes: ATRIBUTOS_DO_CONTEUDO },
+      onUpdate: ({ editor: instancia }) => {
+        if (!somenteLeitura) atualizarMenu(instancia);
       },
+      onSelectionUpdate: ({ editor: instancia }) => atualizarMenu(instancia),
     },
-    onUpdate: ({ editor: instancia }) => {
-      if (somenteLeitura) return;
-
-      agendar(instancia.getJSON() as ConteudoDaPagina);
-      atualizarMenu(instancia);
-    },
-    onSelectionUpdate: ({ editor: instancia }) => atualizarMenu(instancia),
-  });
+    // Um editor por sessao: trocar de pagina cria outro Y.Doc.
+    [sessao],
+  );
 
   /**
    * Detecta o "/" digitado no inicio de um bloco vazio ou apos um espaco.
@@ -183,8 +284,8 @@ export function Editor({
 
     function aoPressionar(evento: KeyboardEvent) {
       if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === 's') {
+        // Ja e salvo a cada alteracao; so evita a janela "salvar como" do navegador.
         evento.preventDefault();
-        void gravarAgora();
         return;
       }
 
@@ -203,20 +304,7 @@ export function Editor({
 
     window.addEventListener('keydown', aoPressionar, true);
     return () => window.removeEventListener('keydown', aoPressionar, true);
-  }, [editor, menu, gravarAgora]);
-
-  // Conteudo trocado ao navegar para outra pagina.
-  useEffect(() => {
-    if (!editor) return;
-
-    const atual = JSON.stringify(editor.getJSON());
-    const novo = JSON.stringify(conteudoInicial);
-
-    if (atual !== novo) {
-      editor.commands.setContent(conteudoInicial, false);
-    }
-    // Reagir apenas a troca de documento, nao a cada tecla digitada.
-  }, [conteudoInicial, editor]);
+  }, [editor, menu]);
 
   useEffect(() => {
     editor?.setEditable(!somenteLeitura);
@@ -230,12 +318,7 @@ export function Editor({
   }, [palavras, caracteres, aoMudarEstatisticas]);
 
   if (!editor) {
-    return (
-      <div className="space-y-3" aria-hidden="true">
-        <div className="animate-pulsar h-9 rounded-md bg-[var(--superficie-suave)]" />
-        <div className="animate-pulsar h-64 rounded-md bg-[var(--superficie-suave)]" />
-      </div>
-    );
+    return <EsqueletoDoEditor />;
   }
 
   return (

@@ -76,6 +76,67 @@ describe('escopo do usuario', () => {
     });
   });
 
+  it('no nivel de leitura, aceita tambem os membros da secao', async () => {
+    const { cliente, chamadas } = clienteFalso();
+    const db = escoparPorUsuario(cliente as never, 'usuario-6', 'leitura') as unknown as {
+      page: { findFirst: (args: unknown) => Promise<unknown> };
+    };
+
+    await db.page.findFirst({ where: { id: 'abc' } });
+
+    expect(chamadas[0]?.args).toEqual({
+      where: {
+        AND: [
+          { id: 'abc' },
+          {
+            section: {
+              OR: [
+                { group: { userId: 'usuario-6' } },
+                { members: { some: { userId: 'usuario-6' } } },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('no nivel de edicao, exige o papel de editor', async () => {
+    const { cliente, chamadas } = clienteFalso();
+    const db = escoparPorUsuario(cliente as never, 'usuario-7', 'edicao') as unknown as {
+      page: { findFirst: (args: unknown) => Promise<unknown> };
+    };
+
+    await db.page.findFirst({ where: { id: 'abc' } });
+
+    expect(chamadas[0]?.args).toEqual({
+      where: {
+        AND: [
+          { id: 'abc' },
+          {
+            section: {
+              OR: [
+                { group: { userId: 'usuario-7' } },
+                { members: { some: { userId: 'usuario-7', role: 'editor' } } },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('grupos continuam so do dono, mesmo no nivel de leitura', async () => {
+    const { cliente, chamadas } = clienteFalso();
+    const db = escoparPorUsuario(cliente as never, 'usuario-8', 'leitura') as unknown as {
+      group: { findMany: (args: unknown) => Promise<unknown> };
+    };
+
+    await db.group.findMany({});
+
+    expect(chamadas[0]?.args).toEqual({ where: { AND: [{}, { userId: 'usuario-8' }] } });
+  });
+
   it('bloqueia update, que nao aceita o filtro com seguranca', async () => {
     const { cliente } = clienteFalso();
     const db = escoparPorUsuario(cliente as never, 'usuario-3') as unknown as {

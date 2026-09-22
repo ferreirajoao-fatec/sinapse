@@ -73,6 +73,14 @@ enum ActivityEntity {
   task_column
   task
   calendar_event
+  section_member
+}
+
+/// Papel de um membro convidado para uma secao compartilhada.
+/// O dono nao aparece aqui: ele e sempre o dono do grupo da secao.
+enum SectionRole {
+  viewer
+  editor
 }
 
 enum TaskPriority {
@@ -115,6 +123,7 @@ model User {
   calendarEvents CalendarEvent[]
   activityLogs   ActivityLog[]
   tokens         VerificationToken[]
+  sectionMembers SectionMember[]
 
   @@index([deletedAt])
   @@map("users")
@@ -230,8 +239,9 @@ model Section {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  group Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  pages Page[]
+  group   Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  pages   Page[]
+  members SectionMember[]
 
   @@index([groupId, deletedAt, position])
   @@map("sections")
@@ -249,6 +259,11 @@ model Page {
 
   /// Texto puro extraido do conteudo, usado pela pesquisa global.
   contentText String @default("") @db.Text
+
+  /// Estado Yjs da edicao em tempo real. O content acima continua sendo a
+  /// copia legivel (busca, IA, duplicar); este campo e a fonte da colaboracao.
+  /// Nulo significa que a pagina ainda nao foi aberta no editor colaborativo.
+  yjsState Bytes?
 
   wordCount  Int     @default(0)
   isFavorite Boolean @default(false)
@@ -292,6 +307,23 @@ model PageVersion {
 
   @@index([pageId, createdAt])
   @@map("page_versions")
+}
+
+/// Membro convidado para uma secao. Quem gerencia a lista e o dono do grupo.
+model SectionMember {
+  id        String      @id @default(uuid()) @db.Uuid
+  sectionId String      @db.Uuid
+  userId    String      @db.Uuid
+  role      SectionRole @default(viewer)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sectionId, userId])
+  @@index([userId])
+  @@map("section_members")
 }
 
 // -----------------------------------------------------------------------------

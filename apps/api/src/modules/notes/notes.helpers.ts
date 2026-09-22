@@ -47,6 +47,7 @@ export interface SecaoBruta {
   position: number;
   archivedAt: Date | null;
   pages: PaginaBruta[];
+  _count?: { members: number };
 }
 
 export function montarSecao(secao: SecaoBruta): SecaoNaArvore {
@@ -57,6 +58,7 @@ export function montarSecao(secao: SecaoBruta): SecaoNaArvore {
     position: secao.position,
     archivedAt: secao.archivedAt?.toISOString() ?? null,
     paginas: montarSubpaginas(secao.pages, null),
+    ...(secao._count ? { totalDeMembros: secao._count.members } : {}),
   };
 }
 

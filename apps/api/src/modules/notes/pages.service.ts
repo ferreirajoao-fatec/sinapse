@@ -9,11 +9,13 @@ import type {
   MoverPaginaInput,
   PaginaCompleta,
   PaginaResumida,
+  PermissaoNaSecao,
   ReordenarInput,
   UrlAssinada,
   UrlDeUpload,
 } from '@sinapse/shared';
 import { StorageService } from '../files/storage.service';
+import type { NivelDeAcesso } from '../../common/prisma/escopo-do-usuario';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   comoJson,
@@ -24,6 +26,9 @@ import {
   montarAnexo,
   montarEtiqueta,
 } from './notes.helpers';
+import { ColaboracaoService } from './colaboracao/colaboracao.service';
+import type { NoJson } from './colaboracao/documento-yjs';
+import { SharingService } from './sharing.service';
 
 const INCLUIR_CAMINHO = {
   section: { select: { id: true, name: true, group: { select: { id: true, name: true } } } },
@@ -75,6 +80,8 @@ export class PagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly compartilhamento: SharingService,
+    private readonly colaboracao: ColaboracaoService,
   ) {}
 
   /** Usado pelo front para esconder a secao de anexos quando nao ha S3 configurado. */
@@ -82,7 +89,7 @@ export class PagesService {
     return this.storage.habilitado;
   }
 
-  private formatar(pagina: PaginaDoBanco): PaginaCompleta {
+  private formatar(pagina: PaginaDoBanco, permissao: PermissaoNaSecao): PaginaCompleta {
     return {
       id: pagina.id,
       sectionId: pagina.sectionId,
@@ -105,6 +112,7 @@ export class PagesService {
         secaoId: pagina.section.id,
         secao: pagina.section.name,
       },
+      permissao,
     };
   }
 
@@ -113,7 +121,8 @@ export class PagesService {
     paginaId: string,
     registrarAbertura = true,
   ): Promise<PaginaCompleta> {
-    const db = this.prisma.paraUsuario(userId);
+    // Leitura inclui as secoes compartilhadas com a conta.
+    const db = this.prisma.paraUsuario(userId, 'leitura');
 
     const pagina = await db.page.findFirst({
       where: { id: paginaId, deletedAt: null },
@@ -121,19 +130,22 @@ export class PagesService {
     });
 
     const encontrada = exigirEncontrado(pagina, 'Pagina nao encontrada.');
+    const permissao =
+      (await this.compartilhamento.permissaoNaSecao(userId, encontrada.sectionId)) ?? 'leitor';
 
-    if (registrarAbertura) {
+    // lastOpenedAt alimenta os recentes do dono; a visita de um membro nao conta.
+    if (registrarAbertura && permissao === 'dono') {
       // Fora do await: abrir a pagina nao pode esperar a gravacao do carimbo.
       void db.page
         .updateMany({ where: { id: paginaId }, data: { lastOpenedAt: new Date() } })
         .catch(() => undefined);
     }
 
-    return this.formatar(encontrada as PaginaDoBanco);
+    return this.formatar(encontrada as PaginaDoBanco, permissao);
   }
 
   async criar(userId: string, dados: CriarPaginaInput): Promise<PaginaCompleta> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
 
     const secao = await db.section.findFirst({
       where: { id: dados.sectionId, deletedAt: null },
@@ -174,12 +186,12 @@ export class PagesService {
         content: comoJson(DOCUMENTO_VAZIO),
         position: (ultima?.position ?? -1) + 1,
       },
-      include: INCLUIR_CAMINHO,
+      select: { id: true },
     });
 
     await this.registrar(userId, ActivityAction.created, pagina.id);
 
-    return this.formatar(pagina as PaginaDoBanco);
+    return this.buscar(userId, pagina.id, false);
   }
 
   async atualizar(
@@ -187,9 +199,29 @@ export class PagesService {
     paginaId: string,
     dados: AtualizarPaginaInput,
   ): Promise<PaginaCompleta> {
-    const db = this.prisma.paraUsuario(userId);
+    // Favorito e fixado ficam gravados na propria pagina e valem para todos
+    // que a veem, entao so o dono decide. O resto e trabalho de editor.
+    const soDoDono = dados.isFavorite !== undefined || dados.isPinned !== undefined;
+    const db = this.prisma.paraUsuario(userId, soDoDono ? 'dono' : 'edicao');
 
     const texto = dados.content ? extrairTexto(dados.content) : undefined;
+
+    // Conteudo trocado fora do editor (integracoes, IA): se alguem esta com a
+    // pagina aberta, a troca entra no documento ao vivo. Se nao, o estado Yjs
+    // antigo e descartado e a proxima abertura parte do JSON novo.
+    let aoVivo = false;
+    if (dados.content !== undefined) {
+      const editavel = await db.page.findFirst({
+        where: { id: paginaId, deletedAt: null },
+        select: { id: true },
+      });
+      aoVivo =
+        editavel !== null &&
+        this.colaboracao.substituirConteudoAoVivo(
+          paginaId,
+          dados.content as unknown as { content?: NoJson[] },
+        );
+    }
 
     const alteradas = await db.page.updateMany({
       where: { id: paginaId, deletedAt: null },
@@ -201,6 +233,7 @@ export class PagesService {
               content: comoJson(dados.content),
               contentText: texto ?? '',
               wordCount: contarPalavras(texto ?? ''),
+              ...(aoVivo ? {} : { yjsState: null }),
             }
           : {}),
         ...(dados.isFavorite !== undefined ? { isFavorite: dados.isFavorite } : {}),
@@ -210,14 +243,14 @@ export class PagesService {
     });
 
     if (alteradas.count === 0) {
-      throw new ForbiddenException('Pagina nao encontrada ou nao pertence a sua conta.');
+      throw new ForbiddenException('Pagina nao encontrada ou voce nao pode edita-la.');
     }
 
     return this.buscar(userId, paginaId, false);
   }
 
   async excluir(userId: string, paginaId: string): Promise<void> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
     const agora = new Date();
 
     const alteradas = await db.page.updateMany({
@@ -226,11 +259,11 @@ export class PagesService {
     });
 
     if (alteradas.count === 0) {
-      throw new ForbiddenException('Pagina nao encontrada ou nao pertence a sua conta.');
+      throw new ForbiddenException('Pagina nao encontrada ou voce nao pode edita-la.');
     }
 
     // Subpaginas acompanham a pagina superior na lixeira, com o mesmo carimbo.
-    const descendentes = await this.listarDescendentes(userId, paginaId);
+    const descendentes = await this.listarDescendentes(userId, paginaId, 'edicao');
 
     if (descendentes.length > 0) {
       await db.page.updateMany({
@@ -239,12 +272,18 @@ export class PagesService {
       });
     }
 
+    this.colaboracao.encerrarPaginas([paginaId, ...descendentes]);
+
     await this.registrar(userId, ActivityAction.deleted, paginaId);
   }
 
   /** Percorre a arvore para baixo, nivel a nivel, sem recursao no banco. */
-  private async listarDescendentes(userId: string, paginaId: string): Promise<string[]> {
-    const db = this.prisma.paraUsuario(userId);
+  private async listarDescendentes(
+    userId: string,
+    paginaId: string,
+    acesso: NivelDeAcesso,
+  ): Promise<string[]> {
+    const db = this.prisma.paraUsuario(userId, acesso);
     const todos: string[] = [];
     let nivel = [paginaId];
 
@@ -265,27 +304,34 @@ export class PagesService {
   }
 
   async mover(userId: string, paginaId: string, dados: MoverPaginaInput): Promise<PaginaCompleta> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
 
     const pagina = await db.page.findFirst({
       where: { id: paginaId, deletedAt: null },
-      select: { id: true },
+      select: { id: true, section: { select: { group: { select: { userId: true } } } } },
     });
 
     if (!pagina) {
-      throw new ForbiddenException('Pagina nao encontrada ou nao pertence a sua conta.');
+      throw new ForbiddenException('Pagina nao encontrada ou voce nao pode edita-la.');
     }
 
     const secao = await db.section.findFirst({
       where: { id: dados.sectionId, deletedAt: null },
-      select: { id: true },
+      select: { id: true, group: { select: { userId: true } } },
     });
 
     if (!secao) {
       throw new ForbiddenException('Secao de destino nao encontrada.');
     }
 
-    const descendentes = await this.listarDescendentes(userId, paginaId);
+    // Mover entre contas diferentes trocaria o dono da pagina sem ele saber.
+    if (secao.group.userId !== pagina.section.group.userId) {
+      throw new ForbiddenException(
+        'A pagina so pode ser movida para secoes do mesmo dono. Para levar o conteudo, duplique e copie.',
+      );
+    }
+
+    const descendentes = await this.listarDescendentes(userId, paginaId, 'edicao');
 
     if (dados.parentPageId) {
       if (dados.parentPageId === paginaId) {
@@ -335,6 +381,9 @@ export class PagesService {
       });
     }
 
+    // A secao mudou: quem esta conectado reconecta com as permissoes da nova.
+    this.colaboracao.encerrarPaginas([paginaId, ...descendentes]);
+
     await this.registrar(userId, ActivityAction.updated, paginaId);
 
     return this.buscar(userId, paginaId, false);
@@ -342,7 +391,12 @@ export class PagesService {
 
   async duplicar(userId: string, paginaId: string): Promise<PaginaCompleta> {
     const original = await this.buscar(userId, paginaId, false);
-    const db = this.prisma.paraUsuario(userId);
+
+    if (original.permissao === 'leitor') {
+      throw new ForbiddenException('Voce so pode ler as paginas desta secao.');
+    }
+
+    const db = this.prisma.paraUsuario(userId, 'edicao');
 
     const ultima = await db.page.findFirst({
       where: {
@@ -368,22 +422,22 @@ export class PagesService {
         // sobre aquela pagina especifica.
         tags: { create: original.tags.map((etiqueta) => ({ tagId: etiqueta.id })) },
       },
-      include: INCLUIR_CAMINHO,
+      select: { id: true },
     });
 
     await this.registrar(userId, ActivityAction.created, copia.id);
 
-    return this.formatar(copia as PaginaDoBanco);
+    return this.buscar(userId, copia.id, false);
   }
 
   async reordenar(userId: string, dados: ReordenarInput): Promise<void> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
     const ids = dados.itens.map((item) => item.id);
 
     const minhas = await db.page.count({ where: { id: { in: ids }, deletedAt: null } });
 
     if (minhas !== ids.length) {
-      throw new ForbiddenException('Alguma pagina da lista nao pertence a sua conta.');
+      throw new ForbiddenException('Alguma pagina da lista nao pode ser editada por voce.');
     }
 
     await this.prisma.$transaction(
@@ -486,8 +540,8 @@ export class PagesService {
     paginaId: string,
     dados: CriarUrlDeUploadInput,
   ): Promise<UrlDeUpload> {
-    const db = this.prisma.paraUsuario(userId);
-    await this.exigirPaginaPropria(db, paginaId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
+    await this.exigirPaginaEditavel(db, paginaId);
 
     const storageKey = this.storage.gerarChave('pages', paginaId, dados.fileName);
     const url = await this.storage.presignUpload(storageKey, dados.mimeType, dados.sizeBytes);
@@ -500,8 +554,8 @@ export class PagesService {
     paginaId: string,
     dados: ConfirmarUploadInput,
   ): Promise<PaginaCompleta> {
-    const db = this.prisma.paraUsuario(userId);
-    await this.exigirPaginaPropria(db, paginaId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
+    await this.exigirPaginaEditavel(db, paginaId);
 
     await this.prisma.pageAttachment.create({
       data: {
@@ -517,7 +571,7 @@ export class PagesService {
   }
 
   async urlDeDownload(userId: string, paginaId: string, anexoId: string): Promise<UrlAssinada> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'leitura');
 
     const anexo = await db.pageAttachment.findFirst({
       where: { id: anexoId, pageId: paginaId },
@@ -528,7 +582,7 @@ export class PagesService {
   }
 
   async removerAnexo(userId: string, paginaId: string, anexoId: string): Promise<void> {
-    const db = this.prisma.paraUsuario(userId);
+    const db = this.prisma.paraUsuario(userId, 'edicao');
 
     const anexo = await db.pageAttachment.findFirst({
       where: { id: anexoId, pageId: paginaId },
@@ -539,7 +593,7 @@ export class PagesService {
     await this.storage.remover(encontrado.storageKey).catch(() => undefined);
   }
 
-  private async exigirPaginaPropria(
+  private async exigirPaginaEditavel(
     db: ReturnType<PrismaService['paraUsuario']>,
     paginaId: string,
   ): Promise<void> {
@@ -549,7 +603,7 @@ export class PagesService {
     });
 
     if (!pagina) {
-      throw new ForbiddenException('Pagina nao encontrada ou nao pertence a sua conta.');
+      throw new ForbiddenException('Pagina nao encontrada ou voce nao pode edita-la.');
     }
   }
 }

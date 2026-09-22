@@ -16,8 +16,10 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
+  adicionarMembroSchema,
   atualizarEtiquetaSchema,
   atualizarGrupoSchema,
+  atualizarMembroSchema,
   atualizarPaginaSchema,
   atualizarSecaoSchema,
   confirmarUploadSchema,
@@ -30,8 +32,10 @@ import {
   moverPaginaSchema,
   reordenarSchema,
   TIPOS_NA_LIXEIRA,
+  type AdicionarMembroInput,
   type AtualizarEtiquetaInput,
   type AtualizarGrupoInput,
+  type AtualizarMembroInput,
   type AtualizarPaginaInput,
   type AtualizarSecaoInput,
   type ConfirmarUploadInput,
@@ -47,9 +51,11 @@ import {
 } from '@sinapse/shared';
 import { UsuarioAtual } from '../../common/decorators/usuario-atual.decorator';
 import { ValidacaoZod } from '../../common/pipes/zod-validation.pipe';
+import { ColaboracaoService } from './colaboracao/colaboracao.service';
 import { GroupsService } from './groups.service';
 import { PagesService } from './pages.service';
 import { SectionsService } from './sections.service';
+import { SharingService } from './sharing.service';
 import { TagsService } from './tags.service';
 import { TrashService } from './trash.service';
 
@@ -63,6 +69,8 @@ export class NotesController {
     private readonly paginas: PagesService,
     private readonly etiquetas: TagsService,
     private readonly lixeira: TrashService,
+    private readonly compartilhamento: SharingService,
+    private readonly colaboracao: ColaboracaoService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -141,8 +149,12 @@ export class NotesController {
   @Delete('sections/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Move a secao e as paginas dela para a lixeira' })
-  excluirSecao(@UsuarioAtual('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
-    return this.secoes.excluir(userId, id);
+  async excluirSecao(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.secoes.excluir(userId, id);
+    this.colaboracao.encerrarSecao(id);
   }
 
   @Post('sections/reorder')
@@ -153,6 +165,58 @@ export class NotesController {
     @Body(new ValidacaoZod(reordenarSchema)) dados: ReordenarInput,
   ) {
     return this.secoes.reordenar(userId, dados);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compartilhamento de secoes
+  // ---------------------------------------------------------------------------
+
+  @Get('sections/compartilhadas')
+  @ApiOperation({ summary: 'Secoes de outras contas compartilhadas com voce' })
+  secoesCompartilhadas(@UsuarioAtual('id') userId: string) {
+    return this.compartilhamento.compartilhadasComigo(userId);
+  }
+
+  @Get('sections/:id/membros')
+  @ApiOperation({ summary: 'Dono e membros da secao, com o papel de cada um' })
+  listarMembros(@UsuarioAtual('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.compartilhamento.listarMembros(userId, id);
+  }
+
+  @Post('sections/:id/membros')
+  @ApiOperation({ summary: 'Da acesso a secao para outra conta, pelo e-mail (so o dono)' })
+  adicionarMembro(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidacaoZod(adicionarMembroSchema)) dados: AdicionarMembroInput,
+  ) {
+    return this.compartilhamento.adicionarMembro(userId, id, dados);
+  }
+
+  @Patch('sections/:id/membros/:membroId')
+  @ApiOperation({ summary: 'Troca o papel de um membro entre leitor e editor (so o dono)' })
+  async atualizarMembro(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('membroId', ParseUUIDPipe) membroId: string,
+    @Body(new ValidacaoZod(atualizarMembroSchema)) dados: AtualizarMembroInput,
+  ) {
+    const membros = await this.compartilhamento.atualizarMembro(userId, id, membroId, dados);
+    // Quem estava editando reconecta ja com o papel novo.
+    this.colaboracao.revogar(membroId, id);
+    return membros;
+  }
+
+  @Delete('sections/:id/membros/:membroId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remove o acesso de um membro, ou sai da secao se for o proprio' })
+  async removerMembro(
+    @UsuarioAtual('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('membroId', ParseUUIDPipe) membroId: string,
+  ): Promise<void> {
+    await this.compartilhamento.removerMembro(userId, id, membroId);
+    this.colaboracao.revogar(membroId, id);
   }
 
   // ---------------------------------------------------------------------------
@@ -181,6 +245,14 @@ export class NotesController {
   @ApiOperation({ summary: 'Conteudo completo de uma pagina' })
   buscarPagina(@UsuarioAtual('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.paginas.buscar(userId, id);
+  }
+
+  @Post('pages/:id/colaboracao')
+  @ApiOperation({
+    summary: 'Emite o ticket de 60s que abre a edicao em tempo real desta pagina',
+  })
+  ticketDeColaboracao(@UsuarioAtual('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.colaboracao.emitirTicket(userId, id);
   }
 
   @Post('pages')

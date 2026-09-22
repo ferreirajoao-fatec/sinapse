@@ -34,6 +34,7 @@ export class GroupsService {
               orderBy: { position: 'asc' },
               select: SELECAO_DE_PAGINAS,
             },
+            _count: { select: { members: true } },
           },
         },
       },

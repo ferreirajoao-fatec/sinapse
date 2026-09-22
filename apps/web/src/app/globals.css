@@ -570,3 +570,32 @@
     line-height: 1.85;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Edicao em tempo real: cursor e nome de quem mais esta na pagina             */
+/* -------------------------------------------------------------------------- */
+
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px 4px 4px 0;
+  color: #fff;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+  user-select: none;
+}

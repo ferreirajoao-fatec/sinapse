@@ -1,6 +1,6 @@
 'use client';
 
-import type { GrupoNaArvore } from '@sinapse/shared';
+import type { GrupoNaArvore, SecaoCompartilhada } from '@sinapse/shared';
 import {
   createContext,
   useCallback,
@@ -11,17 +11,20 @@ import {
   type ReactNode,
 } from 'react';
 import { usarUsuario } from '@/hooks/usar-usuario';
-import { buscarArvore } from '@/lib/conteudos';
+import { buscarArvore, buscarSecoesCompartilhadas } from '@/lib/conteudos';
 
 const CHAVE_ABERTOS = 'sinapse:itens-abertos';
 
 interface ContextoDaArvore {
   grupos: GrupoNaArvore[];
+  /** Secoes de outras contas em que o usuario e membro. */
+  compartilhadas: SecaoCompartilhada[];
   carregando: boolean;
   erro: string | null;
   recarregar: () => Promise<void>;
   /** Substitui a arvore na hora, sem esperar o servidor. */
   definirGrupos: (grupos: GrupoNaArvore[]) => void;
+  definirCompartilhadas: (secoes: SecaoCompartilhada[]) => void;
   abertos: Set<string>;
   alternarAberto: (id: string) => void;
   abrirCaminho: (ids: string[]) => void;
@@ -46,6 +49,7 @@ function gravarAbertos(ids: Set<string>): void {
 export function ProvedorDaArvore({ children }: { children: ReactNode }) {
   const { usuario } = usarUsuario();
   const [grupos, setGrupos] = useState<GrupoNaArvore[]>([]);
+  const [compartilhadas, setCompartilhadas] = useState<SecaoCompartilhada[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -65,7 +69,9 @@ export function ProvedorDaArvore({ children }: { children: ReactNode }) {
 
     try {
       setErro(null);
-      setGrupos(await buscarArvore());
+      const [arvore, deOutros] = await Promise.all([buscarArvore(), buscarSecoesCompartilhadas()]);
+      setGrupos(arvore);
+      setCompartilhadas(deOutros);
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Nao foi possivel carregar seus conteudos.');
     } finally {
@@ -78,6 +84,7 @@ export function ProvedorDaArvore({ children }: { children: ReactNode }) {
       void recarregar();
     } else {
       setGrupos([]);
+      setCompartilhadas([]);
       setCarregando(false);
     }
   }, [usuario, recarregar]);
@@ -118,15 +125,17 @@ export function ProvedorDaArvore({ children }: { children: ReactNode }) {
   const valor = useMemo<ContextoDaArvore>(
     () => ({
       grupos,
+      compartilhadas,
       carregando,
       erro,
       recarregar,
       definirGrupos: setGrupos,
+      definirCompartilhadas: setCompartilhadas,
       abertos,
       alternarAberto,
       abrirCaminho,
     }),
-    [grupos, carregando, erro, recarregar, abertos, alternarAberto, abrirCaminho],
+    [grupos, compartilhadas, carregando, erro, recarregar, abertos, alternarAberto, abrirCaminho],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

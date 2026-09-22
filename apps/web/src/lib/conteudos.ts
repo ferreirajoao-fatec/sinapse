@@ -1,6 +1,8 @@
 import type {
+  AdicionarMembroInput,
   AtualizarEtiquetaInput,
   AtualizarGrupoInput,
+  AtualizarMembroInput,
   AtualizarPaginaInput,
   AtualizarSecaoInput,
   ConfirmarUploadInput,
@@ -13,9 +15,11 @@ import type {
   EtiquetaResumida,
   GrupoNaArvore,
   ItemDaLixeira,
+  MembrosDaSecao,
   MoverPaginaInput,
   PaginaCompleta,
   PaginaResumida,
+  SecaoCompartilhada,
   SecaoNaArvore,
   TipoNaLixeira,
   UrlAssinada,
@@ -75,6 +79,38 @@ export function excluirSecao(id: string) {
 
 export function reordenarSecoes(itens: ItemReordenado[]) {
   return apiFetch<void>('/sections/reorder', { method: 'POST', body: { itens } });
+}
+
+// -----------------------------------------------------------------------------
+// Compartilhamento de secoes
+// -----------------------------------------------------------------------------
+
+export function buscarSecoesCompartilhadas() {
+  return apiFetch<SecaoCompartilhada[]>('/sections/compartilhadas');
+}
+
+export function listarMembrosDaSecao(secaoId: string) {
+  return apiFetch<MembrosDaSecao>(`/sections/${secaoId}/membros`);
+}
+
+export function adicionarMembroNaSecao(secaoId: string, dados: AdicionarMembroInput) {
+  return apiFetch<MembrosDaSecao>(`/sections/${secaoId}/membros`, { method: 'POST', body: dados });
+}
+
+export function atualizarMembroDaSecao(
+  secaoId: string,
+  membroId: string,
+  dados: AtualizarMembroInput,
+) {
+  return apiFetch<MembrosDaSecao>(`/sections/${secaoId}/membros/${membroId}`, {
+    method: 'PATCH',
+    body: dados,
+  });
+}
+
+/** O dono remove um membro; passando o proprio id, o membro sai da secao. */
+export function removerMembroDaSecao(secaoId: string, membroId: string) {
+  return apiFetch<void>(`/sections/${secaoId}/membros/${membroId}`, { method: 'DELETE' });
 }
 
 // -----------------------------------------------------------------------------

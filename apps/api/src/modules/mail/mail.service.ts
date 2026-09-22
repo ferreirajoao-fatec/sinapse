@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   modeloDeLembreteDeEvento,
   modeloDeRedefinicao,
+  modeloDeSecaoCompartilhada,
   modeloDeSenhaAlterada,
   modeloDeVerificacao,
 } from './mail.templates';
@@ -55,6 +56,25 @@ export class MailService {
     await this.enviar(
       para,
       modeloDeLembreteDeEvento(nome, tituloDoEvento, quando, `${this.origemDaWeb}/calendario`),
+    );
+  }
+
+  async enviarAvisoDeSecaoCompartilhada(
+    para: string,
+    nome: string,
+    quemCompartilhou: string,
+    secao: string,
+    podeEditar: boolean,
+  ): Promise<void> {
+    await this.enviar(
+      para,
+      modeloDeSecaoCompartilhada(
+        nome,
+        quemCompartilhou,
+        secao,
+        podeEditar,
+        `${this.origemDaWeb}/notas`,
+      ),
     );
   }
 

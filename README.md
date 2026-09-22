@@ -9,6 +9,11 @@ Plataforma de anotacoes, organizacao de estudos, tarefas e assistente de IA.
 > salvamento automatico), **anexos** em anotacoes e tarefas, **tarefas**
 > (lista e quadro Kanban) e **calendario** (visoes Mes e Agenda, recorrencia e
 > lembrete por e-mail). Falta so a Etapa 9: o **assistente de IA**.
+>
+> **Novo: secoes compartilhadas com edicao em tempo real.** O dono de uma
+> secao convida outras contas pelo e-mail e escolhe, por pessoa, se ela so le
+> ou tambem edita. Quem esta na mesma pagina ve as alteracoes e o cursor dos
+> outros na hora (Yjs + Hocuspocus).
 
 ---
 
@@ -93,6 +98,18 @@ Sem `RESEND_API_KEY` no `.env`, nenhum e-mail e enviado: os links de verificacao
 e de nova senha aparecem no terminal onde a API esta rodando, dentro de um bloco
 destacado. Copie o link e abra no navegador para seguir o fluxo.
 
+## Compartilhamento e edicao em tempo real
+
+- No menu de uma secao, **Compartilhar** abre a lista de quem tem acesso. O
+  dono convida pelo e-mail (a pessoa precisa ter conta) e escolhe **Pode ler**
+  ou **Pode editar**; pode trocar ou remover a qualquer momento.
+- As secoes recebidas aparecem em **Compartilhadas comigo**, na barra lateral.
+- O editor sincroniza por WebSocket em `/api/v1/colaboracao`. Em
+  desenvolvimento o endereco sai de `NEXT_PUBLIC_API_URL`; em producao defina
+  `NEXT_PUBLIC_COLLAB_URL` apontando direto para a API (ver `.env.example`).
+- Para testar localmente, abra a mesma pagina com duas contas em navegadores
+  diferentes (ou uma janela anonima).
+
 ---
 
 ## Atalhos de teclado
@@ -166,6 +183,11 @@ sinapse/
 - Chaves de API de IA e do Google ficam somente no servidor. Apenas variaveis com
   prefixo `NEXT_PUBLIC_` chegam ao navegador.
 - Senhas sao guardadas com Argon2id, nunca em texto puro.
+- Secoes compartilhadas: as permissoes sao aplicadas na camada de dados (cliente
+  Prisma escopado por nivel de acesso), nao so na tela. A conexao de edicao em
+  tempo real usa um ticket de 60s valido para uma pagina, confere a permissao
+  a cada conexao, recusa Origins fora de `WEB_ORIGIN` e cai na hora quando o
+  dono troca o papel ou remove alguem.
 
 ## Licenca
 

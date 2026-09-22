@@ -104,3 +104,33 @@ export function modeloDeSenhaAlterada(nome: string, url: string): Modelo {
     texto: `Ola, ${nome}. A senha da sua conta Sinapse foi alterada. Se nao foi voce, redefina em ${url}.`,
   };
 }
+
+/** Texto digitado por outra pessoa nunca entra cru no HTML do e-mail. */
+function escaparHtml(texto: string): string {
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function modeloDeSecaoCompartilhada(
+  nome: string,
+  quemCompartilhou: string,
+  secao: string,
+  podeEditar: boolean,
+  url: string,
+): Modelo {
+  const acesso = podeEditar ? 'ler e editar' : 'ler';
+
+  return {
+    assunto: `${quemCompartilhou} compartilhou "${secao}" com voce`,
+    html: moldura(
+      `Ola, ${escaparHtml(nome)}`,
+      `${escaparHtml(quemCompartilhou)} compartilhou a secao "${escaparHtml(secao)}" com voce no Sinapse. Voce pode ${acesso} as paginas dela, que ja aparecem em "Compartilhadas comigo" na barra lateral.`,
+      { texto: 'Abrir o Sinapse', url },
+    ),
+    texto: `Ola, ${nome}. ${quemCompartilhou} compartilhou a secao "${secao}" com voce no Sinapse. Voce pode ${acesso} as paginas dela. Acesse: ${url}`,
+  };
+}

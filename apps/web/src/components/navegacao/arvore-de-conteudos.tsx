@@ -18,7 +18,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { GrupoNaArvore, PaginaNaArvore, SecaoNaArvore } from '@sinapse/shared';
+import type {
+  GrupoNaArvore,
+  PaginaNaArvore,
+  PermissaoNaSecao,
+  SecaoCompartilhada,
+  SecaoNaArvore,
+} from '@sinapse/shared';
 import {
   ChevronRight,
   Copy,
@@ -31,10 +37,12 @@ import {
   Plus,
   Star,
   Trash2,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { DialogoDeCompartilhar } from '@/components/conteudos/dialogo-de-compartilhar';
 import { DialogoDeConfirmacao } from '@/components/conteudos/dialogo-de-confirmacao';
 import { DialogoDeGrupo } from '@/components/conteudos/dialogo-de-grupo';
 import { DialogoDeSecao } from '@/components/conteudos/dialogo-de-secao';
@@ -355,6 +363,9 @@ function NoDeSecao({
   const [editando, setEditando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [criando, setCriando] = useState(false);
+  const [compartilhando, setCompartilhando] = useState(false);
+
+  const totalDeMembros = secao.totalDeMembros ?? 0;
 
   const aberto = abertos.has(secao.id);
   const Icone = iconeDeConteudo(secao.icon, FileText);
@@ -444,6 +455,12 @@ function NoDeSecao({
           />
           <Icone aria-hidden="true" className="size-3.5 shrink-0 text-[var(--texto-tenue)]" />
           <span className="truncate text-sm text-[var(--texto-suave)]">{secao.name}</span>
+          {totalDeMembros > 0 ? (
+            <Users
+              aria-label={`Compartilhada com ${totalDeMembros} pessoa${totalDeMembros > 1 ? 's' : ''}`}
+              className="size-3 shrink-0 text-[var(--texto-tenue)]"
+            />
+          ) : null}
         </button>
 
         <MenuSuspenso
@@ -464,6 +481,12 @@ function NoDeSecao({
               rotulo: 'Nova pagina',
               Icone: FilePlus2,
               aoEscolher: () => void novaPagina(),
+            },
+            {
+              id: 'compartilhar',
+              rotulo: 'Compartilhar',
+              Icone: Users,
+              aoEscolher: () => setCompartilhando(true),
             },
             {
               id: 'editar',
@@ -521,15 +544,26 @@ function NoDeSecao({
         grupoId={grupoId}
         secao={secao}
       />
+      <DialogoDeCompartilhar
+        aberto={compartilhando}
+        aoFechar={() => setCompartilhando(false)}
+        secaoId={secao.id}
+        secaoNome={secao.name}
+      />
       <DialogoDeConfirmacao
         aberto={excluindo}
         aoFechar={() => setExcluindo(false)}
         titulo={`Mover "${secao.name}" para a lixeira?`}
         descricao="As paginas desta secao vao junto."
         aviso={
-          secao.paginas.length > 0
-            ? `${secao.paginas.length} pagina${secao.paginas.length > 1 ? 's' : ''} sera movida junto.`
-            : undefined
+          [
+            secao.paginas.length > 0
+              ? `${secao.paginas.length} pagina${secao.paginas.length > 1 ? 's' : ''} sera movida junto.`
+              : null,
+            totalDeMembros > 0 ? 'Quem tem acesso a secao deixa de ve-la.' : null,
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined
         }
         rotuloDeConfirmacao="Mover para a lixeira"
         aoConfirmar={async () => {
@@ -549,10 +583,13 @@ function NoDePagina({
   pagina,
   nivel,
   compacta,
+  permissao = 'dono',
 }: {
   pagina: PaginaNaArvore;
   nivel: number;
   compacta: boolean;
+  /** Em secoes compartilhadas, esconde o que a conta nao pode fazer. */
+  permissao?: PermissaoNaSecao;
 }) {
   const { abertos, alternarAberto, recarregar } = usarArvore();
   const router = useRouter();
@@ -564,8 +601,12 @@ function NoDePagina({
   const temFilhas = pagina.subpaginas.length > 0;
   const Icone = iconeDeConteudo(pagina.icon, FileText);
 
+  const dono = permissao === 'dono';
+  const podeEditar = permissao !== 'leitor';
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: pagina.id,
+    disabled: !podeEditar,
   });
 
   const sensores = useSensors(
@@ -614,15 +655,19 @@ function NoDePagina({
           ativa ? 'bg-[var(--destaque-suave)]' : 'hover:bg-[var(--superficie-suave)]',
         )}
       >
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Reordenar a pagina ${pagina.title}`}
-          className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
-        >
-          <GripVertical aria-hidden="true" className="size-3" />
-        </button>
+        {podeEditar ? (
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={`Reordenar a pagina ${pagina.title}`}
+            className="flex size-4 shrink-0 cursor-grab items-center justify-center text-[var(--texto-tenue)] opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover:opacity-100"
+          >
+            <GripVertical aria-hidden="true" className="size-3" />
+          </button>
+        ) : (
+          <span className="size-4 shrink-0" aria-hidden="true" />
+        )}
 
         {temFilhas ? (
           <button
@@ -661,7 +706,7 @@ function NoDePagina({
           >
             {pagina.title}
           </span>
-          {pagina.isFavorite ? (
+          {dono && pagina.isFavorite ? (
             <Star aria-label="Favorita" className="text-atencao-500 size-3 shrink-0 fill-current" />
           ) : null}
         </Link>
@@ -679,27 +724,44 @@ function NoDePagina({
             </span>
           )}
           acoes={[
-            {
-              id: 'favorita',
-              rotulo: pagina.isFavorite ? 'Remover dos favoritos' : 'Marcar como favorita',
-              Icone: Star,
-              aoEscolher: () => void alternarFavorita(),
-            },
-            { id: 'duplicar', rotulo: 'Duplicar', Icone: Copy, aoEscolher: () => void duplicar() },
+            ...(dono
+              ? [
+                  {
+                    id: 'favorita',
+                    rotulo: pagina.isFavorite ? 'Remover dos favoritos' : 'Marcar como favorita',
+                    Icone: Star,
+                    aoEscolher: () => void alternarFavorita(),
+                  },
+                ]
+              : []),
+            ...(podeEditar
+              ? [
+                  {
+                    id: 'duplicar',
+                    rotulo: 'Duplicar',
+                    Icone: Copy,
+                    aoEscolher: () => void duplicar(),
+                  },
+                ]
+              : []),
             {
               id: 'abrir',
               rotulo: 'Abrir pagina',
               Icone: FileText,
               aoEscolher: () => router.push(`/notas/${pagina.id}`),
             },
-            {
-              id: 'excluir',
-              rotulo: 'Mover para a lixeira',
-              Icone: Trash2,
-              perigosa: true,
-              separadorAntes: true,
-              aoEscolher: () => setExcluindo(true),
-            },
+            ...(podeEditar
+              ? [
+                  {
+                    id: 'excluir',
+                    rotulo: 'Mover para a lixeira',
+                    Icone: Trash2,
+                    perigosa: true,
+                    separadorAntes: true,
+                    aoEscolher: () => setExcluindo(true),
+                  },
+                ]
+              : []),
           ]}
         />
       </div>
@@ -717,7 +779,13 @@ function NoDePagina({
               strategy={verticalListSortingStrategy}
             >
               {pagina.subpaginas.map((filha) => (
-                <NoDePagina key={filha.id} pagina={filha} nivel={nivel + 1} compacta={compacta} />
+                <NoDePagina
+                  key={filha.id}
+                  pagina={filha}
+                  nivel={nivel + 1}
+                  compacta={compacta}
+                  permissao={permissao}
+                />
               ))}
             </SortableContext>
           </DndContext>
@@ -740,6 +808,194 @@ function NoDePagina({
           await recarregar();
           if (ativa) router.push('/notas');
         }}
+      />
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Compartilhadas comigo
+// -----------------------------------------------------------------------------
+
+/** Secoes de outras contas em que o usuario e membro. Some quando nao ha nenhuma. */
+export function SecoesCompartilhadas({ compacta = false }: { compacta?: boolean }) {
+  const { compartilhadas, carregando } = usarArvore();
+
+  if (carregando || compartilhadas.length === 0) return null;
+
+  return (
+    <div className="space-y-0.5">
+      {compartilhadas.map((secao) => (
+        <NoDeSecaoCompartilhada key={secao.id} secao={secao} compacta={compacta} />
+      ))}
+    </div>
+  );
+}
+
+function NoDeSecaoCompartilhada({
+  secao,
+  compacta,
+}: {
+  secao: SecaoCompartilhada;
+  compacta: boolean;
+}) {
+  const { abertos, alternarAberto, recarregar, compartilhadas, definirCompartilhadas } =
+    usarArvore();
+  const router = useRouter();
+  const [vendoMembros, setVendoMembros] = useState(false);
+  const [criando, setCriando] = useState(false);
+
+  const aberto = abertos.has(secao.id);
+  const podeEditar = secao.permissao === 'editor';
+  const Icone = iconeDeConteudo(secao.icon, FileText);
+
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  async function novaPagina() {
+    setCriando(true);
+    try {
+      const pagina = await criarPagina({ sectionId: secao.id, title: 'Sem titulo' });
+      await recarregar();
+      if (!aberto) alternarAberto(secao.id);
+      router.push(`/notas/${pagina.id}`);
+    } finally {
+      setCriando(false);
+    }
+  }
+
+  async function aoSoltarPagina(evento: DragEndEvent) {
+    const { active, over } = evento;
+    if (!over || active.id === over.id) return;
+
+    const de = secao.paginas.findIndex((pagina) => pagina.id === active.id);
+    const para = secao.paginas.findIndex((pagina) => pagina.id === over.id);
+    if (de === -1 || para === -1) return;
+
+    const novasPaginas = arrayMove(secao.paginas, de, para);
+    definirCompartilhadas(
+      compartilhadas.map((item) =>
+        item.id === secao.id ? { ...item, paginas: novasPaginas } : item,
+      ),
+    );
+
+    try {
+      await reordenarPaginas(
+        novasPaginas.map((pagina, indice) => ({ id: pagina.id, position: indice })),
+      );
+    } catch {
+      await recarregar();
+    }
+  }
+
+  return (
+    <div>
+      <div className="group flex h-7 items-center gap-1 rounded-md pr-1 transition-colors hover:bg-[var(--superficie-suave)]">
+        <span className="size-4 shrink-0" aria-hidden="true" />
+
+        <button
+          type="button"
+          onClick={() => alternarAberto(secao.id)}
+          aria-expanded={aberto}
+          title={`De ${secao.dono.nome} - ${podeEditar ? 'voce pode editar' : 'somente leitura'}`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
+        >
+          <ChevronRight
+            aria-hidden="true"
+            className={cn(
+              'size-3 shrink-0 text-[var(--texto-tenue)] transition-transform',
+              aberto && 'rotate-90',
+            )}
+          />
+          <Icone aria-hidden="true" className="size-3.5 shrink-0 text-[var(--texto-tenue)]" />
+          <span className="truncate text-sm text-[var(--texto-suave)]">{secao.name}</span>
+          {!podeEditar ? (
+            <span className="text-2xs shrink-0 text-[var(--texto-tenue)]">leitura</span>
+          ) : null}
+        </button>
+
+        <MenuSuspenso
+          rotulo={`Acoes da secao ${secao.name}`}
+          gatilho={({ aberto: menuAberto }) => (
+            <span
+              className={cn(
+                'flex size-6 items-center justify-center rounded-sm text-[var(--texto-tenue)] transition-opacity hover:text-[var(--texto)]',
+                menuAberto ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+              )}
+            >
+              <MoreHorizontal aria-hidden="true" className="size-3.5" />
+            </span>
+          )}
+          acoes={[
+            ...(podeEditar
+              ? [
+                  {
+                    id: 'pagina',
+                    rotulo: 'Nova pagina',
+                    Icone: FilePlus2,
+                    aoEscolher: () => void novaPagina(),
+                  },
+                ]
+              : []),
+            {
+              id: 'membros',
+              rotulo: 'Pessoas com acesso',
+              Icone: Users,
+              aoEscolher: () => setVendoMembros(true),
+            },
+          ]}
+        />
+      </div>
+
+      {aberto ? (
+        <div className="ml-2.5 border-l pl-1.5">
+          {secao.paginas.length === 0 ? (
+            podeEditar ? (
+              <button
+                type="button"
+                disabled={criando}
+                onClick={() => void novaPagina()}
+                className="flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs text-[var(--texto-tenue)] transition-colors hover:bg-[var(--superficie-suave)] hover:text-[var(--texto)] disabled:opacity-50"
+              >
+                <Plus aria-hidden="true" className="size-3" />
+                Nova pagina
+              </button>
+            ) : (
+              <p className="px-2 py-1 text-xs text-[var(--texto-tenue)]">Nenhuma pagina ainda.</p>
+            )
+          ) : (
+            <DndContext
+              sensors={sensores}
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              onDragEnd={(evento) => void aoSoltarPagina(evento)}
+            >
+              <SortableContext
+                items={secao.paginas.map((pagina) => pagina.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {secao.paginas.map((pagina) => (
+                  <NoDePagina
+                    key={pagina.id}
+                    pagina={pagina}
+                    nivel={0}
+                    compacta={compacta}
+                    permissao={secao.permissao}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+      ) : null}
+
+      <DialogoDeCompartilhar
+        aberto={vendoMembros}
+        aoFechar={() => setVendoMembros(false)}
+        secaoId={secao.id}
+        secaoNome={secao.name}
       />
     </div>
   );

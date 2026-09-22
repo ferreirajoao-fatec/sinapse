@@ -1,5 +1,7 @@
 import CharacterCount from '@tiptap/extension-character-count';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { Color } from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
@@ -14,7 +16,9 @@ import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import StarterKit from '@tiptap/starter-kit';
+import type { HocuspocusProvider } from '@hocuspocus/provider';
 import { common, createLowlight } from 'lowlight';
+import type * as Y from 'yjs';
 import { BlocoInformativo } from './extensoes/bloco-informativo';
 import { ImagemAlinhavel } from './extensoes/imagem-alinhavel';
 
@@ -70,13 +74,37 @@ export const CORES_DE_MARCACAO = [
  * content da pagina. Manter o formato estruturado, em vez de HTML, permite
  * que a Etapa 9 leia o conteudo por blocos e cite a origem de cada resumo.
  */
-export function montarExtensoes(placeholder = 'Digite / para ver os comandos') {
+export interface OpcoesDeColaboracao {
+  ydoc: Y.Doc;
+  provider: HocuspocusProvider;
+  usuario: { name: string; color: string };
+}
+
+/**
+ * Com colaboracao, o documento vive no Yjs: o historico de desfazer passa a
+ * ser o da extensao Collaboration (cada pessoa desfaz so o que ela fez), e os
+ * cursores de quem esta na pagina aparecem com nome e cor.
+ */
+export function montarExtensoes(
+  placeholder = 'Digite / para ver os comandos',
+  colaboracao?: OpcoesDeColaboracao,
+) {
   return [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
       codeBlock: false, // substituido pela versao com realce de sintaxe
       horizontalRule: { HTMLAttributes: { class: 'linha-divisoria' } },
+      ...(colaboracao ? { history: false as const } : {}),
     }),
+    ...(colaboracao
+      ? [
+          Collaboration.configure({ document: colaboracao.ydoc }),
+          CollaborationCursor.configure({
+            provider: colaboracao.provider,
+            user: colaboracao.usuario,
+          }),
+        ]
+      : []),
     Underline,
     TextStyle,
     Color,

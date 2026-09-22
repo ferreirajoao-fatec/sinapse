@@ -17,19 +17,44 @@ import type { PrismaClient } from '@prisma/client';
  *    de forma confiavel, entao seriam a brecha por onde um id alheio passaria.
  *    Chamar uma delas lanca erro na hora, e o teste quebra em vez de vazar.
  *    Os servicos usam findFirst, updateMany e deleteMany no lugar.
+ *
+ * Secoes compartilhadas entram pelo nivel de acesso. No nivel "dono" (o
+ * padrao) nada muda. Em "leitura" e "edicao", secoes, paginas e anexos passam
+ * a aceitar tambem os membros da secao, e "edicao" exige o papel de editor.
+ * Todo o resto (grupos, etiquetas, tarefas, eventos) continua so do dono em
+ * qualquer nivel: ser membro de uma secao nao abre o grupo de ninguem.
  */
 
-type Filtro = (userId: string) => Record<string, unknown>;
+/**
+ * dono: so o que a conta possui.
+ * leitura: o que possui e as secoes em que e membro.
+ * edicao: o que possui e as secoes em que e membro editor.
+ */
+export type NivelDeAcesso = 'dono' | 'leitura' | 'edicao';
 
-/** Caminho de cada modelo ate o usuario dono. */
+type Filtro = (userId: string, nivel: NivelDeAcesso) => Record<string, unknown>;
+
+/** Quem alcanca uma secao no nivel pedido. */
+export function filtroDaSecao(userId: string, nivel: NivelDeAcesso): Record<string, unknown> {
+  const dono = { group: { userId } };
+
+  if (nivel === 'dono') return dono;
+
+  const papel = nivel === 'edicao' ? { role: 'editor' } : {};
+
+  return { OR: [dono, { members: { some: { userId, ...papel } } }] };
+}
+
+/** Caminho de cada modelo ate o usuario dono (ou membro, conforme o nivel). */
 const CAMINHO_ATE_O_DONO: Record<string, Filtro> = {
   group: (userId) => ({ userId }),
   tag: (userId) => ({ userId }),
-  section: (userId) => ({ group: { userId } }),
-  page: (userId) => ({ section: { group: { userId } } }),
-  pageVersion: (userId) => ({ page: { section: { group: { userId } } } }),
+  section: (userId, nivel) => filtroDaSecao(userId, nivel),
+  page: (userId, nivel) => ({ section: filtroDaSecao(userId, nivel) }),
+  pageVersion: (userId, nivel) => ({ page: { section: filtroDaSecao(userId, nivel) } }),
   pageTag: (userId) => ({ tag: { userId } }),
-  pageAttachment: (userId) => ({ page: { section: { group: { userId } } } }),
+  pageAttachment: (userId, nivel) => ({ page: { section: filtroDaSecao(userId, nivel) } }),
+  sectionMember: (userId, nivel) => ({ section: filtroDaSecao(userId, nivel) }),
   taskColumn: (userId) => ({ userId }),
   task: (userId) => ({ column: { userId } }),
   taskChecklistItem: (userId) => ({ task: { column: { userId } } }),
@@ -62,7 +87,11 @@ const OPERACOES_BLOQUEADAS = new Set([
  * Devolve um cliente Prisma preso a um unico usuario.
  * O userId vem sempre do token de sessao, nunca do corpo da requisicao.
  */
-export function escoparPorUsuario(prisma: PrismaClient, userId: string) {
+export function escoparPorUsuario(
+  prisma: PrismaClient,
+  userId: string,
+  nivel: NivelDeAcesso = 'dono',
+) {
   return prisma.$extends({
     name: 'escopo-do-usuario',
     query: {
@@ -94,7 +123,7 @@ export function escoparPorUsuario(prisma: PrismaClient, userId: string) {
 
           return query({
             ...argumentos,
-            where: { AND: [argumentos.where ?? {}, filtro(userId)] },
+            where: { AND: [argumentos.where ?? {}, filtro(userId, nivel)] },
           } as typeof args);
         },
       },

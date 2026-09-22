@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { escoparPorUsuario, type PrismaEscopado } from './escopo-do-usuario';
+import { escoparPorUsuario, type NivelDeAcesso, type PrismaEscopado } from './escopo-do-usuario';
 
 /**
  * Cliente unico do Prisma para toda a aplicacao.
@@ -26,9 +26,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * Cliente preso a um unico usuario.
    * Toda leitura e escrita de grupos, secoes, paginas e etiquetas passa por
    * aqui, de modo que o filtro de dono nunca depende de alguem lembrar dele.
+   *
+   * O nivel "leitura" ou "edicao" inclui as secoes compartilhadas com a conta.
    */
-  paraUsuario(userId: string): PrismaEscopado {
-    return escoparPorUsuario(this, userId);
+  paraUsuario(userId: string, nivel: NivelDeAcesso = 'dono'): PrismaEscopado {
+    return escoparPorUsuario(this, userId, nivel);
   }
 
   async onModuleInit(): Promise<void> {
