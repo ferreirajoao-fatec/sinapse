@@ -28,6 +28,10 @@ function socketComOrigem(origem: string) {
   return class extends WebSocket {
     constructor(url: string, protocolos?: string | string[]) {
       super(url, protocolos, { headers: { Origin: origem } });
+      // No Node, fechar um socket que ainda esta conectando (fim do teste
+      // durante uma reconexao) emite 'error'; o provider ja soltou os proprios
+      // handlers nessa hora. O navegador nao faz isso, entao aqui so ignoramos.
+      this.on('error', () => undefined);
     }
   };
 }
