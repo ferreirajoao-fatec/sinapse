@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import type { EstadoDaColaboracao, SessaoDeColaboracao } from '@/hooks/usar-colaboracao';
 import { usarEstadoDoSalvamento } from '@/hooks/usar-estado-do-salvamento';
 import { ApiError } from '@/lib/api';
+import { detectarMac } from '@/lib/atalhos';
 import { subirArquivo, urlDaImagemDaPagina } from '@/lib/anexos';
 import { confirmarUploadDaPagina, criarUrlDeUploadDaPagina } from '@/lib/conteudos';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,8 @@ import { MenuFlutuante } from './menu-flutuante';
 import { MenuFlutuanteImagem } from './menu-flutuante-imagem';
 import { COMANDOS, normalizar } from './comandos';
 import { IndicadorDeSalvamento } from './indicador-de-salvamento';
+import { estadoDaBusca } from './extensoes/localizar-e-substituir';
+import { PainelDeBusca, type PedidoDeBusca } from './painel-de-busca';
 
 interface PosicaoDoMenu {
   x: number;
@@ -50,6 +53,7 @@ export function Editor({
   modoFoco = false,
   aoMudarEstatisticas,
   aoAnexosAtualizados,
+  pedidoDeBusca = 0,
 }: {
   paginaId: string;
   /** Conteudo salvo, mostrado so enquanto a conexao em tempo real nao abre. */
@@ -65,6 +69,8 @@ export function Editor({
   aoMudarEstatisticas?: (dados: { palavras: number; caracteres: number }) => void;
   /** Chamado apos subir uma imagem, para a lista de Anexos da pagina refletir o novo arquivo. */
   aoAnexosAtualizados?: (anexos: AnexoDePagina[]) => void;
+  /** Incrementado pelo menu da anotacao para abrir o Localizar e substituir. */
+  pedidoDeBusca?: number;
 }) {
   const { sessao, estado: estadoDaConexao, pendentes } = colaboracao;
   const [jaSincronizou, setJaSincronizou] = useState(false);
@@ -110,6 +116,7 @@ export function Editor({
       modoFoco={modoFoco}
       aoMudarEstatisticas={aoMudarEstatisticas}
       aoAnexosAtualizados={aoAnexosAtualizados}
+      pedidoDeBusca={pedidoDeBusca}
     />
   );
 }
@@ -146,6 +153,7 @@ function EditorAoVivo({
   modoFoco,
   aoMudarEstatisticas,
   aoAnexosAtualizados,
+  pedidoDeBusca,
 }: {
   paginaId: string;
   sessao: SessaoDeColaboracao;
@@ -156,10 +164,12 @@ function EditorAoVivo({
   modoFoco: boolean;
   aoMudarEstatisticas?: (dados: { palavras: number; caracteres: number }) => void;
   aoAnexosAtualizados?: (anexos: AnexoDePagina[]) => void;
+  pedidoDeBusca: number;
 }) {
   const [menu, setMenu] = useState<PosicaoDoMenu | null>(null);
   const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [erroDeImagem, setErroDeImagem] = useState<string | null>(null);
+  const [busca, setBusca] = useState<PedidoDeBusca | null>(null);
   const referenciaDoMenu = useRef<ReferenciaDoMenu>(null);
   const inputDeImagem = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -278,14 +288,87 @@ function EditorAoVivo({
     [editor, menu],
   );
 
+  /** Abre (ou refoca) o Localizar, usando a selecao como termo inicial. */
+  const abrirBusca = useCallback(() => {
+    if (!editor) return;
+
+    const { from, to, $from, $to } = editor.state.selection;
+    const selecionado =
+      from !== to && $from.sameParent($to) ? editor.state.doc.textBetween(from, to) : '';
+
+    setMenu(null);
+    setBusca((atual) => ({
+      id: (atual?.id ?? 0) + 1,
+      termo: selecionado.length > 0 && selecionado.length <= 200 ? selecionado : null,
+    }));
+  }, [editor]);
+
+  /** Fecha o painel e devolve o foco ao editor, com o cursor no resultado atual. */
+  const fecharBusca = useCallback(() => {
+    setBusca(null);
+    if (!editor || editor.isDestroyed) return;
+
+    const estado = estadoDaBusca(editor.state);
+    const ocorrencia = estado.ocorrencias[estado.atual];
+    if (ocorrencia) {
+      editor.chain().focus().setTextSelection(ocorrencia).run();
+    } else {
+      editor.commands.focus();
+    }
+  }, [editor]);
+
+  // Abertura pelo menu da anotacao (inclusive no celular).
+  useEffect(() => {
+    if (pedidoDeBusca > 0) abrirBusca();
+    // So reage a novos pedidos, nao a troca da funcao.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoDeBusca]);
+
   // Teclado do menu de comandos e atalho de gravacao imediata.
   useEffect(() => {
     if (!editor) return;
 
+    const ehMac = detectarMac();
+
     function aoPressionar(evento: KeyboardEvent) {
+      if (!editor) return;
+
+      // Ctrl+F (Cmd+F no Mac) abre a busca da anotacao so quando o foco esta no
+      // editor ou no painel; fora dele, fica a busca do navegador.
+      const modificador = ehMac
+        ? evento.metaKey && !evento.ctrlKey
+        : evento.ctrlKey && !evento.metaKey;
+      if (
+        modificador &&
+        !evento.altKey &&
+        !evento.shiftKey &&
+        evento.key.toLowerCase() === 'f' &&
+        focoNoEditor(evento.target) &&
+        !haModalAberto()
+      ) {
+        evento.preventDefault();
+        evento.stopPropagation();
+        abrirBusca();
+        return;
+      }
+
       if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === 's') {
         // Ja e salvo a cada alteracao; so evita a janela "salvar como" do navegador.
         evento.preventDefault();
+        return;
+      }
+
+      // Esc dentro do texto tambem fecha a busca, se o menu "/" nao estiver aberto.
+      if (
+        !menu &&
+        busca &&
+        evento.key === 'Escape' &&
+        evento.target instanceof Node &&
+        editor.view.dom.contains(evento.target)
+      ) {
+        evento.preventDefault();
+        evento.stopPropagation();
+        fecharBusca();
         return;
       }
 
@@ -302,9 +385,22 @@ function EditorAoVivo({
       }
     }
 
+    /**
+     * O foco pode estar no texto, na barra de ferramentas ou no painel. Em modo
+     * de leitura o texto nao recebe foco, entao vale tambem uma selecao feita
+     * com o mouse dentro da anotacao.
+     */
+    function focoNoEditor(alvo: EventTarget | null): boolean {
+      if (!editor) return false;
+      if (alvo instanceof Node && container.current?.contains(alvo)) return true;
+      if (alvo !== document.body) return false;
+      const ancora = window.getSelection()?.anchorNode;
+      return Boolean(ancora && editor.view.dom.contains(ancora));
+    }
+
     window.addEventListener('keydown', aoPressionar, true);
     return () => window.removeEventListener('keydown', aoPressionar, true);
-  }, [editor, menu]);
+  }, [editor, menu, busca, abrirBusca, fecharBusca]);
 
   useEffect(() => {
     editor?.setEditable(!somenteLeitura);
@@ -323,12 +419,25 @@ function EditorAoVivo({
 
   return (
     <div ref={container} className="relative">
-      {!somenteLeitura ? (
-        <BarraDeFerramentas
-          editor={editor}
-          aoEscolherImagem={() => inputDeImagem.current?.click()}
-        />
-      ) : null}
+      {/* Ferramentas e busca ficam juntas no topo enquanto se rola a anotacao. */}
+      <div className="sticky top-14 z-20 lg:top-0">
+        {!somenteLeitura ? (
+          <BarraDeFerramentas
+            editor={editor}
+            aoEscolherImagem={() => inputDeImagem.current?.click()}
+          />
+        ) : null}
+        {busca ? (
+          <div className="flex pt-1">
+            <PainelDeBusca
+              editor={editor}
+              pedido={busca}
+              somenteLeitura={somenteLeitura}
+              aoFechar={fecharBusca}
+            />
+          </div>
+        ) : null}
+      </div>
       {!somenteLeitura ? <MenuFlutuante editor={editor} /> : null}
       {!somenteLeitura ? <MenuFlutuanteImagem editor={editor} /> : null}
 
@@ -380,6 +489,16 @@ function EditorAoVivo({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Com uma janela modal aberta (dialogo, paleta, gaveta), os atalhos da pagina
+ * ficam com ela; o Ctrl+F nao e interceptado.
+ */
+function haModalAberto(): boolean {
+  return Boolean(
+    document.querySelector('dialog[open], [aria-modal="true"]:not([aria-hidden="true"])'),
   );
 }
 

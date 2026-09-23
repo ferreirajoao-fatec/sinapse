@@ -21,6 +21,7 @@ import { common, createLowlight } from 'lowlight';
 import type * as Y from 'yjs';
 import { BlocoInformativo } from './extensoes/bloco-informativo';
 import { ImagemAlinhavel } from './extensoes/imagem-alinhavel';
+import { LocalizarESubstituir } from './extensoes/localizar-e-substituir';
 
 /** Realce de sintaxe apenas das linguagens comuns, para nao inchar o pacote. */
 export const lowlight = createLowlight(common);
@@ -127,6 +128,7 @@ export function montarExtensoes(
     CodeBlockLowlight.configure({ lowlight, defaultLanguage: 'plaintext' }),
     BlocoInformativo,
     CharacterCount,
+    LocalizarESubstituir,
     Placeholder.configure({
       placeholder: ({ node }) => {
         if (node.type.name === 'heading') return 'Titulo';
