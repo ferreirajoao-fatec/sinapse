@@ -50,6 +50,8 @@ export function MenuFlutuante({ editor }: { editor: Editor }) {
       editor={editor}
       tippyOptions={{ duration: 120, maxWidth: 'none' }}
       shouldShow={({ editor: instancia, from, to }) => {
+        // Em modo de leitura nao ha o que formatar.
+        if (!instancia.isEditable) return false;
         // Sem barra dentro de bloco de codigo, onde negrito nao faz sentido.
         if (instancia.isActive('codeBlock')) return false;
         // Imagem selecionada tem sua propria barra (MenuFlutuanteImagem).
