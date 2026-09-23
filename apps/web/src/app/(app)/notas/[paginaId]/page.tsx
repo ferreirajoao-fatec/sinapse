@@ -11,6 +11,7 @@ import {
   MoreHorizontal,
   Paperclip,
   Pencil,
+  Search,
   Star,
   Trash2,
   Users,
@@ -66,6 +67,7 @@ export default function PaginaDaAnotacao() {
   const [estatisticas, setEstatisticas] = useState({ palavras: 0, caracteres: 0 });
   const [modoFoco, setModoFoco] = useState(false);
   const [modoLeitura, setModoLeitura] = useState(false);
+  const [pedidoDeBusca, setPedidoDeBusca] = useState(0);
   const [dialogo, setDialogo] = useState<
     'icone' | 'etiquetas' | 'mover' | 'excluir' | 'compartilhar' | null
   >(null);
@@ -307,6 +309,12 @@ export default function PaginaDaAnotacao() {
         ]
       : []),
     {
+      id: 'localizar',
+      rotulo: 'Localizar e substituir',
+      Icone: Search,
+      aoEscolher: () => setPedidoDeBusca((atual) => atual + 1),
+    },
+    {
       id: 'foco',
       rotulo: 'Modo de foco',
       Icone: Focus,
@@ -331,6 +339,7 @@ export default function PaginaDaAnotacao() {
       somenteLeitura={somenteLeitura}
       modoFoco={modoFoco}
       aoMudarEstatisticas={setEstatisticas}
+      pedidoDeBusca={pedidoDeBusca}
       aoAnexosAtualizados={(anexos) => setPagina((atual) => (atual ? { ...atual, anexos } : atual))}
     />
   );

@@ -37,6 +37,12 @@ export const ATALHOS: Atalho[] = [
   { id: 'comandos', teclas: ['/'], descricao: 'Abrir os comandos rapidos', grupo: 'Editor' },
   { id: 'salvar', teclas: ['Ctrl', 'S'], descricao: 'Salvar agora, sem esperar', grupo: 'Editor' },
   {
+    id: 'localizar',
+    teclas: ['Ctrl', 'F'],
+    descricao: 'Localizar e substituir na anotacao',
+    grupo: 'Editor',
+  },
+  {
     id: 'negrito',
     teclas: ['Ctrl', 'B'],
     descricao: 'Negrito no texto selecionado',

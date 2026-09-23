@@ -515,6 +515,37 @@
     color: var(--color-neutro-900);
   }
 
+  /* --- Localizar e substituir ------------------------------------------- */
+
+  /* Decoracoes temporarias: existem so na tela, nunca no documento salvo. */
+  .conteudo-do-editor .resultado-da-busca {
+    border-radius: 0.15em;
+    background-color: rgb(251 234 205 / 0.9);
+    color: var(--color-neutro-900);
+    box-shadow: 0 0 0 1px rgb(200 131 15 / 0.35);
+  }
+
+  /* A atual nao depende so da cor: tem contorno grosso e sublinhado. */
+  .conteudo-do-editor .resultado-da-busca-atual {
+    background-color: #f6c667;
+    outline: 2px solid var(--color-atencao-700);
+    outline-offset: 1px;
+    text-decoration: underline 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  .dark .conteudo-do-editor .resultado-da-busca {
+    background-color: rgb(200 131 15 / 0.35);
+    color: var(--texto);
+    box-shadow: 0 0 0 1px rgb(240 201 135 / 0.35);
+  }
+
+  .dark .conteudo-do-editor .resultado-da-busca-atual {
+    background-color: #f0c987;
+    color: var(--color-neutro-950);
+    outline-color: #f6dca8;
+  }
+
   /* --- Texto de exemplo --------------------------------------------------- */
 
   .conteudo-do-editor p.is-editor-empty:first-child::before,
