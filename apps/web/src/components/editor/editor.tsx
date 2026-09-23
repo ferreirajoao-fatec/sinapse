@@ -438,8 +438,14 @@ function EditorAoVivo({
           </div>
         ) : null}
       </div>
-      {!somenteLeitura ? <MenuFlutuante editor={editor} /> : null}
-      {!somenteLeitura ? <MenuFlutuanteImagem editor={editor} /> : null}
+      {/*
+        Os menus flutuantes ficam sempre montados: o BubbleMenu move o proprio
+        elemento para dentro do tippy, e desmonta-los ao entrar no modo de
+        leitura fazia o React falhar com "removeChild". Eles se escondem
+        sozinhos quando o editor nao e editavel.
+      */}
+      <MenuFlutuante editor={editor} />
+      <MenuFlutuanteImagem editor={editor} />
 
       {!somenteLeitura ? (
         <input

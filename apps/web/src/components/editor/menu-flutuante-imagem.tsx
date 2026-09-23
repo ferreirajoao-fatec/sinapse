@@ -20,6 +20,7 @@ export function MenuFlutuanteImagem({ editor }: { editor: Editor }) {
       pluginKey="menuFlutuanteImagem"
       tippyOptions={{ duration: 120, maxWidth: 'none', placement: 'top' }}
       shouldShow={({ editor: instancia }) => {
+        if (!instancia.isEditable) return false;
         const { selection } = instancia.state;
         return selection instanceof NodeSelection && selection.node.type.name === 'image';
       }}
